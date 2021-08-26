@@ -1,0 +1,2 @@
+.jqvmap-label,.jqvmap-pin{pointer-events:none}.jqvmap-label{background:#292929;display:none;font-family:sans-serif,Verdana;font-size:smaller}.jqvmap-label,.jqvmap-zoomin,.jqvmap-zoomout{border-radius:3px;color:#fff;padding:3px;position:absolute}.jqvmap-zoomin,.jqvmap-zoomout{background:#000;cursor:pointer;height:10px;left:10px;line-height:10px;text-align:center;width:10px}.jqvmap-zoomin{top:10px}.jqvmap-zoomout{top:30px}.jqvmap-region{cursor:pointer}.jqvmap-ajax_response{height:500px;width:100%}
+
