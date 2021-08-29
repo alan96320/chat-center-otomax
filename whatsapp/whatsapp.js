@@ -4,7 +4,7 @@ const QR = require('qrcode');
 
 let sessionCfg;
 var client;
-function add(socket) {
+function create(socket) {
     const SESSION_FOLDER = 'whatsapp/session/';
     const SESSION_FILE_NAME = 'whatsapp-session.json';
     if (fs.existsSync(SESSION_FOLDER+SESSION_FILE_NAME)) {
@@ -42,4 +42,4 @@ function add(socket) {
     client.initialize();
 }
 
-module.exports = {add};
+module.exports = {create};

@@ -1,0 +1,102 @@
+.code-container{
+    min-width: inherit;
+    position: relative;
+    z-index: 1;
+    border-radius: 5px;
+    box-shadow: rgb(0 0 0 / 55%) 0 5px 20px;
+    margin: 10px !important;
+    max-height: calc(100% - 15px);
+    .code-seti{
+        height: auto;
+        min-width: inherit;
+        padding: 5px 18px 18px 0px;
+        border-radius: 5px;
+        font-size: 13px;
+        font-variant-ligatures: contextual;
+        font-feature-settings: "calt";
+        user-select: none;
+        font-family: Hack, monospace !important;
+        background-color: rgb(21, 23, 24) !important;
+        border: none;
+        color: rgb(144, 169, 89) !important;
+        position: relative;
+        &::before{
+            content: '';
+            background-color: rgb(128 128 128 / 30%);
+            width: 30px;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            border-top-left-radius: 5px;
+            border-bottom-left-radius: 5px;
+        }
+        ol{
+            padding-inline-start: 36px;
+            li{
+                color: rgb(205, 63, 69);
+                &::marker{
+                    color: rgb(210, 132, 69);
+                }
+            }
+        }
+    }
+}
+
+.simmer{
+    animation : shimmer 2s infinite;
+    background: linear-gradient(to right, #eff1f3 4%, #e2e2e2 25%, #eff1f3 36%);
+    background-size: 1000px 100%;
+    img{
+        animation : images 2s infinite;
+        opacity: 0;
+    }
+    .account-label{
+        animation : images 2s infinite;
+        opacity: 0;
+    }
+    .account-status{
+        animation : images 2s infinite;
+        opacity: 0;
+    }
+}
+@keyframes fullView {
+    100% {
+      width: 100%;
+    }
+}
+
+@keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+}
+
+@keyframes images {
+    0% {
+        opacity: 0;
+    }
+    25% {
+        opacity: .3;
+    }
+    50% {
+        opacity: .5;
+    }
+    75% {
+        opacity: .8;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.listContack.notif-on{
+    position: relative;
+    .fa-circle:before {
+        animation: pulsate 1s ease-out;
+        animation-iteration-count: infinite;
+        color: #ffa426;
+    }
+}

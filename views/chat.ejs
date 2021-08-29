@@ -1,0 +1,336 @@
+<%- include('layouts/header') %>
+
+<div class="main-content position-absolute h-100 w-100">
+  <section class="section h-100 log-area">
+      <div class="code-container">
+          <div class="code-seti">
+              <ol id="log">
+                  <li>Connecting socket...</li>
+              </ol>
+          </div>
+      </div>
+  </section>
+  <section class="section h-100 content-area" style="display: none;">
+    <div class="section-body m-0 h-100">
+      <div class="row align-items-center justify-content-center h-100 area">
+        <div class="col-3 p-0 area-contack h-100">
+          <div class="card h-100 m-0">
+            <div class="card-header flex-column p-0">
+              <div class="media w-100 justify-content-between align-items-center border-bottom px-3 py-2">
+                <div class="d-flex align-items-center">
+                  <i class=" mr-3 logo-chat"></i>
+                  <div class="font-weight-bold logo-text text-capitalize">jabbim</div>
+                </div>
+                <a href="javascript:void(0);" class="btn btn-icon" id="addAccount" title="Add Account" data-toggle="tooltip" >
+                  <i class="ion-android-add" style="font-size: 25px;"></i>
+                </a>
+              </div>
+              <div class="input-group search">
+                <div class="input-group-prepend">
+                  <div class="input-group-text">
+                    <i class="ion-android-search"></i>
+                  </div>
+                </div>
+                <input type="text" class="form-control" id="search-contack" placeholder="Cari atau mulai chat baru.">
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <ul class="list-unstyled list-unstyled-border" id="accountArea"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="col-9 p-0 area-chat h-100">
+            <div class="list-chat-area h-100" style="display: none;">
+                <div class="card h-100 m-0">
+                  <div class="card-header p-0 px-3 justify-content-between align-items-center border-bottom border-left">
+                    <div class="d-flex align-items-center">
+                      <img alt="image" class="mr-3 rounded-circle" width="40" src="img/avatar/avatar-1.png">
+                      <div class="media-body">
+                        <div class="font-weight-bold text-capitalize text-small account-label"></div>
+                        <div class="text-small font-600-bold account-status"></div>
+                      </div>
+                    </div>
+                    <div class="dropdown">
+                      <button class="btn btn-icon" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="ion-android-more-vertical" style="font-size: 25px;"></i>
+                      </button>
+                      <div class="dropdown-menu dropdown-menu-right">
+                        <a href="javascript:void(0);" class="dropdown-item has-icon update">
+                          <i class="ion-android-create"></i> Update Contact
+                        </a>
+                        <a href="javascript:void(0);" class="dropdown-item has-icon delete">
+                          <i class="ion-android-delete"></i> Delete Contact
+                        </a>
+                        <a href="javascript:void(0);" class="dropdown-item has-icon clear">
+                          <i class="ion-android-textsms"></i> Clear Chat
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="javascript:void(0);" class="dropdown-item has-icon text-danger logout">
+                          <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                      </div>
+                    </div>
+      
+                  </div>
+                  <div class="card-body d-flex flex-column chat-content">
+                    <div class="chat-badge text-uppercase text-small">kemarin</div>
+                    <div class="chat-item chat-right">
+                      <div class="chat-text">ini pesan anda</div>
+                      <div class="chat-time">09:00</div>
+                    </div>
+                    <div class="chat-item chat-left">
+                      <div class="chat-text">ini balasannya</div>
+                      <div class="chat-time">09:18</div>
+                    </div>
+                  </div>
+                </div>
+            </div>
+            <div class="card h-100 m-0 border-left data-null">
+                <div class="card-body d-flex align-items-center justify-content-center flex-column">
+                    <p class="m-0">Untuk melihat data silahkan pilih salah satu kontak di samping.</p>
+                    <p class="m-0">Jika tidak ada kontak, silahkan tambahkan kontaknya.</p>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- modal jabbim -->
+<div class="modal fade" tabindex="-1" role="dialog" id="modalJabbim" data-backdrop="static">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-capitalize">Add Jabbim</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form class="needs-validation" novalidate>
+        <input type="hidden" name="type" value="jabbim">
+        <div class="modal-body pb-0">
+          <div class="form-group">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">
+                  <i class="ion-at"></i>
+                </div>
+              </div>
+              <input type="text" class="form-control" placeholder="Label" name="label" required>
+              <div class="invalid-feedback">
+                Label is required.
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">
+                  <i class="ion-card"></i>
+                </div>
+              </div>
+              <input type="text" class="form-control" placeholder="Username" name="username" required>
+              <div class="invalid-feedback">
+                Username is required.
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">
+                  <i class="ion-lock-combination"></i>
+                </div>
+              </div>
+              <input type="password" class="form-control" placeholder="Password" name="password" required>
+              <div class="invalid-feedback">
+                Password is required.
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">
+                  <i class="ion-clipboard"></i>
+                </div>
+              </div>
+              <input type="text" class="form-control" placeholder="Resource" name="resource" required>
+              <div class="invalid-feedback">
+                Resource is required.
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="custom-control custom-checkbox">
+              <input type="checkbox" name="startup" class="custom-control-input" tabindex="3" checked>
+              <label class="custom-control-label" >Logon on startup</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- modal Whastapp -->
+<div class="modal fade" tabindex="-1" role="dialog" id="modalWhatsapp" data-backdrop="static">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-capitalize">Add Whatsapp</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form class="needs-validation" novalidate>
+        <input type="hidden" name="type" value="jabbim">
+        <div class="modal-body pb-0">
+          <div class="form-group">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">
+                  <i class="ion-at"></i>
+                </div>
+              </div>
+              <input type="text" class="form-control" placeholder="Label" name="label" required>
+              <div class="invalid-feedback">
+                Label is required.
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">
+                  <i class="ion-card"></i>
+                </div>
+              </div>
+              <input type="text" class="form-control" placeholder="Username" name="username" required>
+              <div class="invalid-feedback">
+                Username is required.
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="custom-control custom-checkbox">
+              <input type="checkbox" name="startup" class="custom-control-input" tabindex="3" checked>
+              <label class="custom-control-label">Logon on startup</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- modal telegram -->
+<div class="modal fade" tabindex="-1" role="dialog" id="modalTelegram" data-backdrop="static">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-capitalize">Add Telegram</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form class="needs-validation" novalidate>
+        <input type="hidden" name="type" value="jabbim">
+        <div class="modal-body pb-0">
+          <div class="form-group">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">
+                  <i class="ion-at"></i>
+                </div>
+              </div>
+              <input type="text" class="form-control" placeholder="Label" name="label" required>
+              <div class="invalid-feedback">
+                Label is required.
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">
+                  <i class="ion-card"></i>
+                </div>
+              </div>
+              <input type="text" class="form-control" placeholder="Username" name="username" required>
+              <div class="invalid-feedback">
+                Username is required.
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">
+                  <i class="ion-lock-combination"></i>
+                </div>
+              </div>
+              <textarea name="token" rows="10" class="form-control" placeholder="Token Api"></textarea>
+              <div class="invalid-feedback">
+                Token Api is required.
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">
+                  <i class="ion-key"></i>
+                </div>
+              </div>
+              <input type="text" class="form-control" placeholder="Connect server" name="connect" required>
+              <div class="invalid-feedback">
+                Connect Server is required.
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="custom-control custom-checkbox">
+              <input type="checkbox" name="startup" class="custom-control-input" tabindex="3" checked>
+              <label class="custom-control-label">Logon on startup</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- untuk update account -->
+<div class="dropdown-menu dropdown-menu-right position-absolute" id="actionAccount">
+  <a href="javascript:void(0);" class="dropdown-item has-icon update">
+    <i class="ion-android-create"></i> Update Contact
+  </a>
+  <a href="javascript:void(0);" class="dropdown-item has-icon delete">
+    <i class="ion-android-delete"></i> Delete Contact
+  </a>
+  <a href="javascript:void(0);" class="dropdown-item has-icon clear">
+    <i class="ion-android-textsms"></i> Clear Chat
+  </a>
+  <div class="dropdown-divider"></div>
+  <a href="javascript:void(0);" class="dropdown-item has-icon text-danger logout">
+    <i class="fas fa-sign-out-alt"></i> Logout
+  </a>
+</div>
+
+
+
+<%- include('layouts/footer') %>

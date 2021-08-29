@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title class="text-capitalize">Chat Center Otomax</title>
+
+    <!-- General CSS Files -->
+    <link rel="stylesheet" href="assets/css/app.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/vendor/ionicons201.css">
+    <link rel="stylesheet" href="assets/css/vendor/weathericons.css">
+    <link rel="stylesheet" href="assets/css/chat.css">
+    <link rel="stylesheet/less" type="text/css" href="assets/css/code-view.less" />
+    <script src="assets/js/vendor/less.min.js" ></script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="main-wrapper">
+            <div class="navbar-bg"></div>
+            <nav class="navbar navbar-expand-lg main-navbar">
+                <ul class="navbar-nav mr-3">
+                    <li>
+                        <a href="#" data-toggle="sidebar" class="nav-link nav-link-lg">
+                            <i class="fas fa-bars"></i>
+                        </a>
+                    </li>
+                </ul>
+                <div class="navbar-nav w-100 text-center text-capitalize d-none d-lg-block">
+                    <label class="judul">Selamat datang, di aplikasi chat otomax.</label>
+                </div>
+            </nav>
+            <div class="main-sidebar border-right">
+                <aside id="sidebar-wrapper">
+                    <div class="sidebar-brand mt-2">
+                        <a href="javascript:void(0);">Chat Otomax</a>
+                    </div>
+                    <div class="sidebar-brand sidebar-brand-sm mt-2">
+                        <a href="javascript:void(0);">CO</a>
+                    </div>
+                    <%- include('menu') %>
+                </aside>
+            </div>
+            
