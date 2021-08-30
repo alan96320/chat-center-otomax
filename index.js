@@ -22,31 +22,22 @@ app.get('/',(req, res) =>{
     res.render('chat');
 })
 
-var data = {
-    "jabbim":[],
-    "whatsapp":[],
-    "telegram":[]
-}
-IMCenter.getAll().then(e=>{
-    if (e[3]) {
-        data.jabbim = e[3];
-    }
-    if (e[5]) {
-        data.whatsapp = e[5];
-    }
-    if (e[4]) {
-        data.telegram = e[4];
-    }
-});
-
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
     socket.emit('message', 'Socket is ready...');
-    socket.emit('dataAccount', data);
+    var data;
+    await IMCenter.getAll().then(res => {
+        data = {
+            "jabbim":res[3] ? res[3] : [],
+            "telegram":res[4] ? res[4] : [],
+            "whatsapp":res[5] ? res[5] : [],
+        }
+        socket.emit('dataAccount', data);
+    })
     // untuk jabbim
     socket.emit('message', 'Sedang mempersiapkan jabbim...');
     if (data.jabbim.length > 0) {
         data.jabbim.forEach(async e =>  {
-            socket.emit('message', 'Connecting with: '+e.username);
+            socket.emit('message', 'Connecting with jabbim: '+e.username);
             var conn = new xmpp.SimpleXMPP();
             await new jabbim.create(socket,e,conn);
             socket.on('logoutJabbim', function(data) {
@@ -65,6 +56,29 @@ io.on('connection', (socket) => {
             jabbim.logout(socket,conn,e);
         });
     })
+
+    // untuk whatsapp
+    socket.emit('message', 'Sedang mempersiapkan whatsapp...');
+    if (data.whatsapp.length > 0) {
+        data.whatsapp.forEach(element => {
+            socket.emit('message', 'Connecting with whatsapp: '+element.username);
+            new whatsapp.create(socket,{
+                username:element.username
+            })
+        });
+    } else {
+        socket.emit('message', 'Whatsapp ready...');
+    }
+    socket.on('addWhatsapp', async (data) => {
+        new whatsapp.create(socket,data);
+    })
+    socket.on('cancelScan',(status) => {
+        if (status) {
+            socket.emit('message','Scan QR canceled..');
+            console.log('Scan QR canceled..');
+        }
+    })
+    
 
     socket.on('AccountAdd',(data) => {
         IMCenter.add(data).then(e => {
@@ -91,16 +105,6 @@ io.on('connection', (socket) => {
             });
         })
     })
-
-    // untuk whatsapp
-    // socket.emit('message', 'Sedang mempersiapkan whatsapp...');
-    // if (data.whatsapp.length > 0) {
-    //     data.whatsapp.forEach(e => {
-    //         whatsapp.create(socket);
-    //     });
-    // } else {
-    //     socket.emit('message', 'Whatsapp ready...');
-    // }
     
 })
 

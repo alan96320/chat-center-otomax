@@ -31,7 +31,7 @@
                     <i class="ion-android-search"></i>
                   </div>
                 </div>
-                <input type="text" class="form-control" id="search-contack" placeholder="Cari atau mulai chat baru.">
+                <input type="text" class="form-control" id="search-contack" placeholder="Search Contact...">
               </div>
             </div>
             <div class="card-body p-0">
@@ -184,14 +184,20 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title text-capitalize">Add Whatsapp</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <button class="btn btn-primary btn-sm" id="btnCancelwhatsapp">Cancel</button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" id="btnfromWhatsapp">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <form class="needs-validation" novalidate>
-        <input type="hidden" name="type" value="jabbim">
+      <div class="modal-body p-0 qrCode m-0 text-center" id="qrCodeaArea">
+        <label class="text-muted text-small m-0 mt-2"></label>
+        <img src="" class="img-responsive">
+      </div>
+      <form class="needs-validation" novalidate >
+        <input type="hidden" name="type" value="whatsapp">
         <div class="modal-body pb-0">
           <div class="form-group">
+            <label class="text-muted text-small">Label</label>
             <div class="input-group">
               <div class="input-group-prepend">
                 <div class="input-group-text">
@@ -202,25 +208,6 @@
               <div class="invalid-feedback">
                 Label is required.
               </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <div class="input-group-text">
-                  <i class="ion-card"></i>
-                </div>
-              </div>
-              <input type="text" class="form-control" placeholder="Username" name="username" required>
-              <div class="invalid-feedback">
-                Username is required.
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <div class="custom-control custom-checkbox">
-              <input type="checkbox" name="startup" class="custom-control-input" tabindex="3" checked>
-              <label class="custom-control-label">Logon on startup</label>
             </div>
           </div>
         </div>

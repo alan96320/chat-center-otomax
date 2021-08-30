@@ -25,7 +25,7 @@ $(document).ready( async () =>{
             return el;
         });
         data.whatsapp = $.map(data.whatsapp, function (el, i) {
-            el.status = 'Offline';
+            el.status = 'Connecting...';
             el.color = 'text-muted';
             return el;
         });
@@ -37,33 +37,12 @@ $(document).ready( async () =>{
         dataAccount = data;
         showMenu(sessionStorage.getItem('menu-active'));
     })
-
-    if (sessionStorage.getItem('menu-active')) {
-        showMenu(sessionStorage.getItem('menu-active'));
-    }
     
     socket.on('message', (msg) => {
         $('#log').append($('<li>').text(msg));
         // $('.code-container').getNiceScroll(0).doScrollTop($('.code-container').height());
         $('.code-container').scrollTop($('.code-container').get(0).scrollHeight, -1);
     });
-
-    socket.on('qr', function(src) {
-        $('#qrcode').attr('src', src);
-        $('#qrcode').show();
-    });
-
-    socket.on('ready', function(data) {
-        $('#qrcode').hide();
-    });
-
-    socket.on('authenticated', function(data) {
-        $('#qrcode').hide();
-    });
-    
-    $('#testing').click(function (e) { 
-        socket.emit('logoutJabbim', 'main001');
-    })
 
     $('.menu').click(function (e) { 
         e.preventDefault();
@@ -81,8 +60,16 @@ $(document).ready( async () =>{
         }
         if (type == 'whatsapp') {
             modalWhatsapp.find('.modal-title').text('Add whatsapp');
+            modalWhatsapp.find('form').hide();
+            modalWhatsapp.find('.loading').remove();
+            $('#btnfromWhatsapp').hide();
+            $('#qrCodeaArea').show();
+            $('#qrCodeaArea').find('label').text('');
+            $('#qrCodeaArea').find('img').hide();
+            $('#btnCancelwhatsapp').show();
             modalWhatsapp.modal('show');
-            formWhatsapp.trigger('reset').attr('method','POST');
+            loading($('#qrCodeaArea'),true);
+            socket.emit('addWhatsapp',{add:true});
         }
         if (type == 'telegram') {
             modalTelegram.find('.modal-title').text('Add Telegram');
@@ -95,7 +82,7 @@ $(document).ready( async () =>{
         accountArea.children().remove();
         dataNullArea.show();
         chatArea.hide();
-        if (link == 'log') {
+        if (link == 'log' || link == null) {
             log.show();
             content.hide();
         }else{
@@ -120,8 +107,8 @@ $(document).ready( async () =>{
                             sessionStorage.setItem('accountActive',username);
                             $(this).addClass('active');
                             getChat({
-                                type:'jabbim',
-                                username:username
+                                username:username,
+                                type:link,
                             });
                         })
                         accountArea.append(html);
@@ -130,7 +117,7 @@ $(document).ready( async () =>{
                         $(`.listContack[data-username="${sessionStorage.getItem('accountActive')}"]`).addClass('active');
                         getChat({
                             username:sessionStorage.getItem('accountActive'),
-                            type:sessionStorage.getItem('menu-active')
+                            type:link
                         });
                     }
                 }
@@ -139,6 +126,35 @@ $(document).ready( async () =>{
                 icon.removeAttr('class').addClass('fab fa-whatsapp mr-3 logo-chat');
                 iconText.text('whatsapp');
                 btnAddAccount.attr('data-type','whatsapp');
+                if (dataAccount != null) {
+                    dataAccount.whatsapp.forEach(el => {
+                        var html = profileAccount({
+                            simmer:false,
+                            username:el.username,
+                            label:el.label,
+                            color:el.color,
+                            status:el.status,
+                            type:'whatsapp'
+                        });
+                        html.click(function () { 
+                            var username = $(this).attr('data-username');
+                            sessionStorage.setItem('accountActive',username);
+                            $(this).addClass('active');
+                            getChat({
+                                username:username,
+                                type:link,
+                            });
+                        })
+                        accountArea.append(html);
+                    });
+                    if (sessionStorage.getItem('accountActive') && dataAccount.whatsapp.length > 0) {
+                        $(`.listContack[data-username="${sessionStorage.getItem('accountActive')}"]`).addClass('active');
+                        getChat({
+                            username:sessionStorage.getItem('accountActive'),
+                            type:link
+                        });
+                    }
+                }
             }
             if (link == 'telegram') {
                 icon.removeAttr('class').addClass('fab fa-telegram mr-3 logo-chat');
@@ -147,9 +163,11 @@ $(document).ready( async () =>{
             }
             
         }
-        $('.sidebar-menu').find('.nav-item').removeClass('active');
-        $(`[data-link="${link}"]`).closest('.nav-item').addClass('active');
-        sessionStorage.setItem('menu-active',link);
+        if (link != null) {
+            $('.sidebar-menu').find('.nav-item').removeClass('active');
+            $(`[data-link="${link}"]`).closest('.nav-item').addClass('active');
+            sessionStorage.setItem('menu-active',link);
+        }
     }
 
     // untuk menyimpan data akun jabbim
@@ -166,48 +184,10 @@ $(document).ready( async () =>{
         }
         if (method == 'PUT') {
             data['id'] = $(this).attr('data-id');
-            socket.emit('jabbimUpdate', data);
+            socket.emit('AccountUpdate', data);
         }
     })
-    socket.on('resAccountAdd', data => {
-        data.color = 'text-muted';
-        data.status = 'Connecting...';
-        var html = profileAccount({
-            simmer:true,
-            username:data.username,
-            label:data.label,
-            color:data.color,
-            status:data.status
-        });
-        accountArea.append(html);
-        if (data.type == 3) {
-            loading(formJabbim,false);
-            modaljabbim.modal('hide');
-            dataAccount.jabbim.push(data);
-            socket.emit('jabbimConn', data);
-        }
-    })
-
-    socket.on('resAccountUpdate', data => {
-        if (data != null) {
-            if (data.type == 3) {
-                var index = dataAccount.jabbim.findIndex(e => e.username === data.username);
-                dataAccount.jabbim[index].color = 'text-muted';
-                dataAccount.jabbim[index].status = 'Connecting...';
-                loading(formJabbim,false);
-                modaljabbim.modal('hide');
-                socket.emit('jabbimConn', data);
-            }
-            $(`.listContack[data-username="${data.username}"]`).find('.account-label').text(data.label);
-            $(`.listContack[data-username="${data.username}"]`).addClass('simmer')
-                                                            .find('.account-status')
-                                                            .removeClass('text-success')
-                                                            .removeClass('text-danger')
-                                                            .addClass('text-muted')
-                                                            .html('<i class="fas fa-circle"></i> Connecting...');
-        }
-    })
-
+    
     socket.on('resJabbimConn', data => {
         if (data.status) {
             $(`.listContack[data-username="${data.username}"], .list-chat-area[data-username="${data.username}"]`).removeClass('simmer')
@@ -240,6 +220,134 @@ $(document).ready( async () =>{
                     }
                 });
             }
+        }
+    })
+
+    // untuk menyimpan data whatsapp
+    socket.on('qrWhatsapp', (data) => {
+        $('#qrCodeaArea').find('label').text(data.message).show();
+        $('#qrCodeaArea').find('img').attr('src',data.url).show();
+        loading($('#qrCodeaArea'),false);
+    })
+    socket.on('whatsappReady', (data) => {
+        var target = $(`.listContack[data-username="${data.username}"], .list-chat-area[data-username="${data.username}"]`);
+        target.removeClass('simmer')
+            .find('.account-status')
+            .removeClass('text-muted')
+            .removeClass('text-danger')
+            .addClass('text-success')
+            .html('<i class="fas fa-circle"></i> Online');
+        if (dataAccount != null) {
+            dataAccount.whatsapp.forEach((element,index) => {
+                if (element.username == data.username) {
+                    dataAccount.whatsapp[index].status = 'Online';
+                    dataAccount.whatsapp[index].color = 'text-success';
+                }
+            });
+        }
+    })
+    socket.on('timeOutScan', (message) => {
+        $('#qrCodeaArea').find('label').text(message);
+        $('#qrCodeaArea').find('img').hide();
+        loading($('#qrCodeaArea'),false);
+    })
+    socket.on('disconedWhatsapp',(data) => {
+        $(`.listContack[data-username="${data.username}"]`).remove();
+        $(`.list-chat-area[data-username="${data.username}"]`).hide();
+        dataNullArea.show();
+    })
+    $('#btnCancelwhatsapp').click(function () { 
+        socket.emit('cancelScan',true);
+        modalWhatsapp.modal('hide');
+    })
+
+    formWhatsapp.submit(function (e) {
+        e.preventDefault();
+        loading(formWhatsapp,true);
+        var data = {};
+        $( this ).serializeArray().forEach((el,i) => {
+            data[el.name] = el.value;
+        });
+        data['id'] = $(this).attr('data-id');
+        socket.emit('AccountUpdate', data);
+    })
+
+
+    socket.on('resAccountAdd', data => {
+        var simmer = true;
+        data.color = 'text-muted';
+        data.status = 'Connecting...';
+        var type = data.type == 3 ? 'jabbim' : (data.type == 3 ? 'telegram' : 'whatsapp');
+        if (type == 'jabbim') {
+            loading(formJabbim,false);
+            modaljabbim.modal('hide');
+            dataAccount.jabbim.push(data);
+            socket.emit('jabbimConn', data);
+        }
+        if (type == 'whatsapp') {
+            modalWhatsapp.modal('hide');
+            dataAccount.whatsapp.push(data);
+            simmer = false;
+            data.color = 'text-success';
+            data.status = 'Online';
+        }
+        var target = $(`.listContack[data-username="${data.username}"], .list-chat-area[data-username="${data.username}"]`);
+        if (target.length > 0) {
+            console.log(target);
+            target.removeClass('simmer')
+                .find('.account-status')
+                .removeClass('text-muted')
+                .removeClass('text-danger')
+                .addClass('text-success')
+                .html('<i class="fas fa-circle"></i> Online');
+            if (dataAccount != null) {
+                dataAccount[type].forEach((element,index) => {
+                    if (element.username == data.username) {
+                        dataAccount[type][index].status = 'Online';
+                        dataAccount[type][index].color = 'text-success';
+                    }
+                });
+            }
+        } else {
+            console.log(data);
+            var html = profileAccount({
+                simmer:simmer,
+                username:data.username,
+                label:data.label,
+                color:data.color,
+                status:data.status,
+                type:type
+            });
+            accountArea.append(html);
+        }
+    })
+
+    socket.on('resAccountUpdate', data => {
+        if (data != null) {
+            var target = $(`.listContack[data-username="${data.username}"], .list-chat-area[data-username="${data.username}"]`);
+            var newData = data;
+            if (data.type == 3) {
+                var index = dataAccount.jabbim.findIndex(e => e.username === data.username);
+                newData.color = 'text-muted';
+                newData.status = 'Connecting...';
+                dataAccount.jabbim[index] = newData;
+                loading(formJabbim,false);
+                modaljabbim.modal('hide');
+                socket.emit('jabbimConn', data);
+                target.addClass('simmer')
+                    .find('.account-status')
+                    .removeClass('text-success')
+                    .removeClass('text-danger')
+                    .addClass('text-muted')
+                    .html('<i class="fas fa-circle"></i> Connecting...');
+            }
+            if (data.type == 5) {
+                var index = dataAccount.jabbim.findIndex(e => e.username === data.username);
+                dataAccount.whatsapp[index] = newData;
+                loading(formWhatsapp,false);
+                modalWhatsapp.modal('hide');
+            }
+            target.find('.account-label').text(data.label);
         }
     })
 
@@ -300,31 +408,33 @@ $(document).ready( async () =>{
     // ambil responnya setelah chat di ambil
     socket.on('resGetChat', data => {
         const datax = dataAccount[data.type].find(e => e.username === data.username);
-        dataNullArea.hide();
-        chatArea.show().attr('data-username',datax.username);
-        chatArea.find('.account-label').text(datax.username);
-        chatArea.find('.account-status').attr('class',`${datax.color} text-small font-600-bold account-status`).html(`<i class="fas fa-circle"></i> ${datax.status}`);
-        chatArea.find('.dropdown-item').attr('data-username',datax.username).attr('data-type',datax.type == 3 ? 'jabbim' : (datax.type == 4 ? 'whatsapp' : 'telegram'));
-        chatArea.find('.chat-content').children().remove();
-        data.message.forEach(element => {
-            var outbox = element.outbox;
-            // <div class="chat-badge text-uppercase text-small">kemarin</div>
-            chatArea.find('.chat-content').append($(`
-                <div class="chat-item chat-left">
-                    <div class="chat-text">${element.pesan}</div>
-                    <div class="chat-time">${moment(element.tgl_entri).format('HH:mm')}</div>
-                </div>
-            `));
-            if (outbox) {
+        if (datax) {
+            dataNullArea.hide();
+            chatArea.show().attr('data-username',datax.username);
+            chatArea.find('.account-label').text(datax.label);
+            chatArea.find('.account-status').attr('class',`${datax.color} text-small font-600-bold account-status`).html(`<i class="fas fa-circle"></i> ${datax.status}`);
+            chatArea.find('.dropdown-item').attr('data-username',datax.username).attr('data-type',datax.type == 3 ? 'jabbim' : (datax.type == 5 ? 'whatsapp' : 'telegram'));
+            chatArea.find('.chat-content').children().remove();
+            data.message.forEach(element => {
+                var outbox = element.outbox;
+                // <div class="chat-badge text-uppercase text-small">kemarin</div>
                 chatArea.find('.chat-content').append($(`
-                    <div class="chat-item chat-right">
-                        <div class="chat-text">${outbox.pesan}</div>
-                        <div class="chat-time">${moment(outbox.tgl_entri).format('HH:mm')}</div>
+                    <div class="chat-item chat-left">
+                        <div class="chat-text">${element.pesan}</div>
+                        <div class="chat-time">${moment(element.tgl_entri).format('HH:mm')}</div>
                     </div>
                 `));
-            }
-        });
-        $('.chat-content').scrollTop($('.chat-content').get(0).scrollHeight, -1);
+                if (outbox) {
+                    chatArea.find('.chat-content').append($(`
+                        <div class="chat-item chat-right">
+                            <div class="chat-text">${outbox.pesan}</div>
+                            <div class="chat-time">${moment(outbox.tgl_entri).format('HH:mm')}</div>
+                        </div>
+                    `));
+                }
+            });
+            $('.chat-content').scrollTop($('.chat-content').get(0).scrollHeight, -1);
+        }
     })
 
     // untuk memunculkan action account
@@ -347,7 +457,6 @@ $(document).ready( async () =>{
 
     // untuk update account
     $('.update').click(function() {
-        console.log('tes');
         updateAccount({
             username:$(this).attr('data-username'),
             type:$(this).attr('data-type')
@@ -367,6 +476,17 @@ $(document).ready( async () =>{
             modaljabbim.find('.modal-title').text('Update jabbim account '+data.username);
             modaljabbim.modal('show');
         }
+        if (datax.type == 'whatsapp') {
+            var data = dataAccount.whatsapp.find(e => e.username === username);
+            formWhatsapp.trigger('reset').attr('data-id',data.id);
+            formWhatsapp.find('[name="label"]').val(data.label);
+            formWhatsapp.show();
+            $('#qrCodeaArea').hide();
+            $('#btnCancelwhatsapp').hide();
+            $('#btnfromWhatsapp').show();
+            modalWhatsapp.find('.modal-title').text('Update jabbim account '+data.username);
+            modalWhatsapp.modal('show');
+        }
     }
 
     function loading(target,show) {
@@ -378,7 +498,7 @@ $(document).ready( async () =>{
         if (show) {
             target.prepend(loading);
         }else{
-            loading.remove();
+            target.find('.loading').remove();
         }
     }
 
