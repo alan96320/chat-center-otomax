@@ -4,7 +4,7 @@ const QR = require('qrcode');
 const IMCenter = require('../controller/IMCenterController');
 const Inbox = require('../controller/inboxController');
 const Outbox = require('../controller/outboxController');
-const SESSION_FOLDER = 'whatsapp/session/';
+const SESSION_FOLDER = 'service/session/';
 let i = 1;
 function create(socket,data) {
     console.log('lagi initianlisasi');

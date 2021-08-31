@@ -30,7 +30,7 @@ $(document).ready( async () =>{
             return el;
         });
         data.telegram = $.map(data.telegram, function (el, i) {
-            el.status = 'Offline';
+            el.status = 'Connecting...';
             el.color = 'text-muted';
             return el;
         });
@@ -105,7 +105,9 @@ $(document).ready( async () =>{
                         html.click(function () { 
                             var username = $(this).attr('data-username');
                             sessionStorage.setItem('accountActive',username);
+                            accountArea.find('.listContack').removeClass('active');
                             $(this).addClass('active');
+                            $(this).removeClass('notif-on');
                             getChat({
                                 username:username,
                                 type:link,
@@ -139,7 +141,9 @@ $(document).ready( async () =>{
                         html.click(function () { 
                             var username = $(this).attr('data-username');
                             sessionStorage.setItem('accountActive',username);
+                            accountArea.find('.listContack').removeClass('active');
                             $(this).addClass('active');
+                            $(this).removeClass('notif-on');
                             getChat({
                                 username:username,
                                 type:link,
@@ -160,9 +164,40 @@ $(document).ready( async () =>{
                 icon.removeAttr('class').addClass('fab fa-telegram mr-3 logo-chat');
                 iconText.text('telegram');
                 btnAddAccount.attr('data-type','telegram');
+                if (dataAccount != null) {
+                    dataAccount.telegram.forEach(el => {
+                        var html = profileAccount({
+                            simmer:false,
+                            username:el.username,
+                            label:el.label,
+                            color:el.color,
+                            status:el.status,
+                            type:'telegram'
+                        });
+                        html.click(function () { 
+                            var username = $(this).attr('data-username');
+                            sessionStorage.setItem('accountActive',username);
+                            accountArea.find('.listContack').removeClass('active');
+                            $(this).addClass('active');
+                            $(this).removeClass('notif-on');
+                            getChat({
+                                username:username,
+                                type:link,
+                            });
+                        })
+                        accountArea.append(html);
+                    });
+                    if (sessionStorage.getItem('accountActive') && dataAccount.telegram.length > 0) {
+                        $(`.listContack[data-username="${sessionStorage.getItem('accountActive')}"]`).addClass('active');
+                        getChat({
+                            username:sessionStorage.getItem('accountActive'),
+                            type:link
+                        });
+                    }
+                }
             }
-            
         }
+
         if (link != null) {
             $('.sidebar-menu').find('.nav-item').removeClass('active');
             $(`[data-link="${link}"]`).closest('.nav-item').addClass('active');
@@ -170,7 +205,7 @@ $(document).ready( async () =>{
         }
     }
 
-    // untuk menyimpan data akun jabbim
+    // untuk pengaturan akun jabbim
     formJabbim.submit(function (e) { 
         e.preventDefault();
         loading(formJabbim,true);
@@ -223,7 +258,7 @@ $(document).ready( async () =>{
         }
     })
 
-    // untuk menyimpan data whatsapp
+    // untuk pengaturan whatsapp
     socket.on('qrWhatsapp', (data) => {
         $('#qrCodeaArea').find('label').text(data.message).show();
         $('#qrCodeaArea').find('img').attr('src',data.url).show();
@@ -261,6 +296,7 @@ $(document).ready( async () =>{
         modalWhatsapp.modal('hide');
     })
 
+    // untuk update whatsapp
     formWhatsapp.submit(function (e) {
         e.preventDefault();
         loading(formWhatsapp,true);
@@ -272,12 +308,64 @@ $(document).ready( async () =>{
         socket.emit('AccountUpdate', data);
     })
 
+    // untuk pengaturan telegram
+    formTelegram.submit(function (e) {
+        e.preventDefault();
+        loading(formTelegram,true);
+        var method = $(this).attr('method');
+        var data = {};
+        $( this ).serializeArray().forEach((el,i) => {
+            data[el.name] = el.value;
+        });
+        if (method == 'POST') {
+            socket.emit('AccountAdd', data);
+        }
+        if (method == 'PUT') {
+            data['id'] = $(this).attr('data-id');
+            socket.emit('AccountUpdate', data);
+        }
+    })
+    socket.on('errorAuthTelegram',(err) => {
+        loading(formTelegram,false);
+        var alert = $(`
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong>${err}</strong> please check token...
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        `);
+        formTelegram.find('.modal-body').prepend(alert);
+        setTimeout(() => {
+            alert.remove();
+        }, 10000);
+    })
+    socket.on('TelegramReady',(data) => {
+        var target = $(`.listContack[data-username="${data.username}"], .list-chat-area[data-username="${data.username}"]`);
+        target.removeClass('simmer')
+            .find('.account-status')
+            .removeClass('text-muted')
+            .removeClass('text-danger')
+            .addClass('text-success')
+            .html('<i class="fas fa-circle"></i> Online');
+        if (dataAccount != null) {
+            dataAccount.telegram.forEach((element,index) => {
+                if (element.username == data.username) {
+                    dataAccount.telegram[index].status = 'Online';
+                    dataAccount.telegram[index].color = 'text-success';
+                }
+            });
+        }
+    })
+
+
+
 
     socket.on('resAccountAdd', data => {
         var simmer = true;
         data.color = 'text-muted';
         data.status = 'Connecting...';
-        var type = data.type == 3 ? 'jabbim' : (data.type == 3 ? 'telegram' : 'whatsapp');
+        var type = data.type == 3 ? 'jabbim' : (data.type == 4 ? 'telegram' : 'whatsapp');
         if (type == 'jabbim') {
             loading(formJabbim,false);
             modaljabbim.modal('hide');
@@ -291,9 +379,15 @@ $(document).ready( async () =>{
             data.color = 'text-success';
             data.status = 'Online';
         }
+        if (type == 'telegram') {
+            modalTelegram.modal('hide');
+            dataAccount.telegram.push(data);
+            simmer = false;
+            data.color = 'text-success';
+            data.status = 'Online';
+        }
         var target = $(`.listContack[data-username="${data.username}"], .list-chat-area[data-username="${data.username}"]`);
         if (target.length > 0) {
-            console.log(target);
             target.removeClass('simmer')
                 .find('.account-status')
                 .removeClass('text-muted')
@@ -309,7 +403,6 @@ $(document).ready( async () =>{
                 });
             }
         } else {
-            console.log(data);
             var html = profileAccount({
                 simmer:simmer,
                 username:data.username,
@@ -318,6 +411,17 @@ $(document).ready( async () =>{
                 status:data.status,
                 type:type
             });
+            html.click(function () { 
+                var username = $(this).attr('data-username');
+                sessionStorage.setItem('accountActive',username);
+                accountArea.find('.listContack').removeClass('active');
+                $(this).addClass('active');
+                $(this).removeClass('notif-on');
+                getChat({
+                    username:username,
+                    type: $(this).addClass('data-type'),
+                });
+            })
             accountArea.append(html);
         }
     })
@@ -326,6 +430,7 @@ $(document).ready( async () =>{
         if (data != null) {
             var target = $(`.listContack[data-username="${data.username}"], .list-chat-area[data-username="${data.username}"]`);
             var newData = data;
+            // untuk untuk jabbim
             if (data.type == 3) {
                 var index = dataAccount.jabbim.findIndex(e => e.username === data.username);
                 newData.color = 'text-muted';
@@ -341,12 +446,31 @@ $(document).ready( async () =>{
                     .addClass('text-muted')
                     .html('<i class="fas fa-circle"></i> Connecting...');
             }
+
+            // data untuk whatsapp
             if (data.type == 5) {
-                var index = dataAccount.jabbim.findIndex(e => e.username === data.username);
+                var index = dataAccount.whatsapp.findIndex(e => e.username === data.username);
                 dataAccount.whatsapp[index] = newData;
                 loading(formWhatsapp,false);
                 modalWhatsapp.modal('hide');
             }
+
+            //data untuk telegram
+            if (data.type == 4) {
+                var index = dataAccount.telegram.findIndex(e => e.username === data.username);
+                newData.color = 'text-success';
+                newData.status = 'Online';
+                dataAccount.telegram[index] = newData;
+                loading(formTelegram,false);
+                modalTelegram.modal('hide');
+                target.removeClass('simmer')
+                    .find('.account-status')
+                    .removeClass('text-muted')
+                    .removeClass('text-danger')
+                    .addClass('text-success')
+                    .html('<i class="fas fa-circle"></i> Online');
+            }
+
             target.find('.account-label').text(data.label);
         }
     })
@@ -369,7 +493,6 @@ $(document).ready( async () =>{
                 target.addClass('notif-on');
             }
         }
-        console.log(data);
     })
 
     // jika ada chat keluar
@@ -388,17 +511,6 @@ $(document).ready( async () =>{
                 target.addClass('notif-on');
             }
         }
-        console.log(data);
-    })
-
-    // jika contack di klik maka ambil data chat nya
-    $('.listContack').click(function(){
-        sessionStorage.setItem('accountActive',$(this).attr('data-username'));
-        $(this).addClass('active');
-        getChat({
-            username:$(this).attr('data-username'),
-            type:$(this).attr('data-type')
-        });
     })
 
     function getChat(data) {
@@ -484,8 +596,21 @@ $(document).ready( async () =>{
             $('#qrCodeaArea').hide();
             $('#btnCancelwhatsapp').hide();
             $('#btnfromWhatsapp').show();
-            modalWhatsapp.find('.modal-title').text('Update jabbim account '+data.username);
+            modalWhatsapp.find('.modal-title').text('Update whatsapp account '+data.username);
             modalWhatsapp.modal('show');
+        }
+        if (datax.type == 'telegram') {
+            var data = dataAccount.telegram.find(e => e.username === username);
+            formTelegram.trigger('reset').attr('method','PUT').attr('data-id',data.id);
+            formTelegram.find('[name="label"]').val(data.label);
+            formTelegram.find('[name="startup"]').prop('checked',data.startup_login);
+            formTelegram.find('[name="username"]').val(data.username);
+            formTelegram.show();
+            $('#qrCodeaArea').hide();
+            $('#btnCancelwhatsapp').hide();
+            $('#btnfromWhatsapp').show();
+            modalTelegram.find('.modal-title').text('Update telegram account '+data.username);
+            modalTelegram.modal('show');
         }
     }
 

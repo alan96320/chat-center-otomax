@@ -1,5 +1,5 @@
 const { IMCenter, inbox, outbox } = require('../models');
-const helper = require('../helpers');
+const helper = require('../helpers/helpers');
 const CryptoJS = require("crypto-js");
 
 const getAll = async () => {
@@ -32,6 +32,9 @@ const add = async (data) => {
             params.username = data.username;
             params.password = CryptoJS.AES.encrypt(data.username, data.label).toString();
         }
+        if (data.type == 'telegram') {
+            params.password = CryptoJS.AES.encrypt(data.token, data.username).toString();
+        }
         params.startup_login = data.startup == 'on' ? true : false;
         params.label = data.label;
         var result = await IMCenter.create(params);
@@ -45,13 +48,18 @@ const update = async (data) => {
     try {
         var params = {};
         if (data.type == 'jabbim') {
-            params.type = 3;
             params.username = data.username;
             if (data.password == null || data.password == "" || data.password == undefined){
                 params.password = CryptoJS.AES.encrypt(data.password, data.label).toString();
             }
             params.startup_login = data.startup == 'on' ? true : false;
             params.resource = data.resource;
+        }
+        if (data.type == 'telegram') {
+            if (params.password != null) {
+                params.password = CryptoJS.AES.encrypt(data.token, data.username).toString();
+            }
+            params.startup_login = data.startup == 'on' ? true : false;
         }
         params.label = data.label;
         

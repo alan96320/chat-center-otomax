@@ -231,58 +231,21 @@
         </button>
       </div>
       <form class="needs-validation" novalidate>
-        <input type="hidden" name="type" value="jabbim">
+        <input type="hidden" name="type" value="telegram">
+        <input type="hidden" name="username">
         <div class="modal-body pb-0">
           <div class="form-group">
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <div class="input-group-text">
-                  <i class="ion-at"></i>
-                </div>
-              </div>
-              <input type="text" class="form-control" placeholder="Label" name="label" required>
-              <div class="invalid-feedback">
-                Label is required.
-              </div>
+            <label class="text-small text-muted">Label</label>
+            <input type="text" class="form-control" placeholder="Label" name="label" required>
+            <div class="invalid-feedback">
+              Label is required.
             </div>
           </div>
           <div class="form-group">
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <div class="input-group-text">
-                  <i class="ion-card"></i>
-                </div>
-              </div>
-              <input type="text" class="form-control" placeholder="Username" name="username" required>
-              <div class="invalid-feedback">
-                Username is required.
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <div class="input-group-text">
-                  <i class="ion-lock-combination"></i>
-                </div>
-              </div>
-              <textarea name="token" rows="10" class="form-control" placeholder="Token Api"></textarea>
-              <div class="invalid-feedback">
-                Token Api is required.
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <div class="input-group-text">
-                  <i class="ion-key"></i>
-                </div>
-              </div>
-              <input type="text" class="form-control" placeholder="Connect server" name="connect" required>
-              <div class="invalid-feedback">
-                Connect Server is required.
-              </div>
+            <label class="text-small text-muted">Token Api</label>
+            <textarea name="token" class="form-control" placeholder="Token Api" style="height: 100px;"></textarea>
+            <div class="invalid-feedback">
+              Token Api is required.
             </div>
           </div>
           <div class="form-group">

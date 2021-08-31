@@ -3,8 +3,10 @@ const socketIO = require('socket.io');
 const http = require('http');
 const path = require('path');
 const xmpp = require('simple-xmpp');
-const whatsapp = require('./whatsapp/whatsapp');
-const jabbim = require('./jabbim/jabbim');
+const CryptoJS = require("crypto-js");
+const whatsapp = require('./service/whatsapp');
+const jabbim = require('./service/jabbim');
+const telegram = require('./service/telegram');
 
 const IMCenter = require('./controller/IMCenterController');
 const Inbox = require('./controller/inboxController');
@@ -24,6 +26,8 @@ app.get('/',(req, res) =>{
 
 io.on('connection', async (socket) => {
     socket.emit('message', 'Socket is ready...');
+
+    // ambil data untuk pertama kali
     var data;
     await IMCenter.getAll().then(res => {
         data = {
@@ -33,6 +37,7 @@ io.on('connection', async (socket) => {
         }
         socket.emit('dataAccount', data);
     })
+
     // untuk jabbim
     socket.emit('message', 'Sedang mempersiapkan jabbim...');
     if (data.jabbim.length > 0) {
@@ -78,16 +83,63 @@ io.on('connection', async (socket) => {
             console.log('Scan QR canceled..');
         }
     })
-    
 
-    socket.on('AccountAdd',(data) => {
+    // untuk telegram
+    // 1995723271:AAHd-ecl6DVPpCDb5M_S9Bz_ukY6VfaUbds
+    // 1966888472:AAGF_YjTR5mqIsD8VmVHiy89KXEk95Z_BdY
+    socket.emit('message', 'Sedang mempersiapkan telegram...');
+    if (data.telegram.length > 0) {
+        data.telegram.forEach(element => {
+            socket.emit('message', 'Connecting with telegram: '+element.username);
+            var token = CryptoJS.AES.decrypt(element.password, element.username).toString(CryptoJS.enc.Utf8);
+            telegram.MyBot(token,socket,element.username);
+        });
+    }else{
+        socket.emit('message', 'Telegram ready...');
+    }
+
+    socket.on('AccountAdd', async (data) => {
+        if (data.type == 'telegram') {
+            await telegram.authenticated(data.token).then(e => {
+                if (e.status) {
+                    data.username = e.username;
+                }else{
+                    socket.emit('errorAuthTelegram','Token is not found..');
+                }
+            });
+        }
         IMCenter.add(data).then(e => {
+            if (data.type == 'telegram') {
+                telegram.MyBot(data.token,socket,e.username);
+            }
             socket.emit('resAccountAdd',e);
         });
     });
 
-    socket.on('AccountUpdate',(data) => {
+    socket.on('AccountUpdate',async (data) => {
+        if (data.type == 'telegram') {
+            data.password = null;
+            if (data.token != '') {
+                await telegram.authenticated(data.token).then(e => {
+                    if (e.status) {
+                        data.username = e.username;
+                        data.password = data.token;
+                    }else{
+                        socket.emit('errorAuthTelegram','Token is not found..');
+                    }
+                });   
+            }
+            
+            
+        }
         IMCenter.update(data).then(e => {
+            if (data.type == 'telegram') {
+                console.log(e.username);
+                if (data.password != null) {
+                    var token = CryptoJS.AES.decrypt(e.password, e.username).toString(CryptoJS.enc.Utf8);
+                    telegram.MyBot(token,socket,e.username);
+                }
+            }
             socket.emit('resAccountUpdate',e);
         })
     })
