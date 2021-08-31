@@ -49,8 +49,20 @@ const update = async (data) => {
     }
 }
 
+const deleted = async (where) => {
+    try {
+        var result = await inbox.destroy({
+            where:where
+        });
+        return result;
+    } catch (err) {
+        console.log(err);
+    }
+}
+
 module.exports = {
     getAll,
     add,
-    update
+    update,
+    deleted
 }

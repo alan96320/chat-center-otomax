@@ -10,6 +10,7 @@ const telegram = require('./service/telegram');
 
 const IMCenter = require('./controller/IMCenterController');
 const Inbox = require('./controller/inboxController');
+const Outbox = require('./controller/outboxController');
 
 const app = express();
 const server = http.createServer(app);
@@ -144,6 +145,26 @@ io.on('connection', async (socket) => {
         })
     })
 
+    socket.on('deleteAccount', async (data) => {
+        await IMCenter.deleted({
+            username: data.username
+        }).then(async e => {
+            await Inbox.deleted({
+                penerima: data.username
+            }).then(async e => {
+                await Outbox.deleted({
+                    pengirim: data.username
+                }).then(e => {
+                    socket.emit('resDeleteAccount',{
+                        username: data.username,
+                        type:data.type
+                    })
+                })
+            })
+        })
+
+    })
+
     socket.on('getChat', async (data) => {
         var type = data.type == 'jabbim' ? 'g' : 'y';
         Inbox.getAll({
@@ -155,6 +176,20 @@ io.on('connection', async (socket) => {
                 message:e,
                 type:data.type
             });
+        })
+    })
+
+    socket.on('clearChat', async (data) => {
+        await Inbox.deleted({
+            penerima: data.username
+        }).then(async e => {
+            await Outbox.deleted({
+                pengirim: data.username
+            }).then(e => {
+                socket.emit('resClearAccount',{
+                    username: data.username
+                })
+            })
         })
     })
     

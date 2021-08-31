@@ -3,7 +3,7 @@ const { Model } = require('sequelize')
 module.exports = (sequelize, DataTypes) => {
   class inbox extends Model {
     static associate({ outbox }) {
-        this.hasOne(outbox, { foreignKey: 'kode_inbox', sourceKey: 'kode' })
+        this.hasOne(outbox, { foreignKey: 'kode_inbox', sourceKey: 'kode' });
     }
 
     // toJSON() {

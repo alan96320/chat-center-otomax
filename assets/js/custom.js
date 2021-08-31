@@ -575,6 +575,61 @@ $(document).ready( async () =>{
         })
     })
 
+    // untuk delete contack
+    $('.delete').click(function () {
+        var username = $(this).attr('data-username');
+        var type = $(this).attr('data-type');
+        swal({
+            title: 'Are you sure?',
+            text: 'Once deleted contack, you will not be able to recover this contack!',
+            icon: 'warning',
+            buttons: true,
+            dangerMode: true,
+        }).then((willDelete) => {
+            if (willDelete) {
+                socket.emit('deleteAccount',{
+                    username: username,
+                    type:type
+                });
+            }
+        });
+    })
+    socket.on('resDeleteAccount', (data) => {
+        var index = dataAccount[data.type].findIndex(e => e.username == data.username);
+        if (index > -1) {
+            dataAccount[data.type].splice(index, 1);
+        }
+        $(`.listContack[data-username="${data.username}"]`).remove();
+        if ($(`.list-chat-area[data-username="${data.username}"]`)) {
+            $(`.list-chat-area[data-username="${data.username}"]`).hide();
+            dataNullArea.show();
+        }
+    })
+
+    // untuk clear chat
+    $('.clear').click(function () {
+        var username = $(this).attr('data-username');
+        swal({
+            title: 'Are you sure?',
+            text: 'Once clear chat, you will not be able to recover this chat!',
+            icon: 'warning',
+            buttons: true,
+            dangerMode: true,
+        }).then((willDelete) => {
+            if (willDelete) {
+                socket.emit('clearChat',{
+                    username: username
+                });
+            }
+        });
+    })
+    socket.on('resClearAccount', (data) => {
+        var target = $(`.list-chat-area[data-username="${data.username}"]`);
+        if (target) {
+            target.find('.chat-item').remove();
+        }
+    })
+
     function updateAccount(datax) {
         var username = datax.username;
         if (datax.type == 'jabbim') {

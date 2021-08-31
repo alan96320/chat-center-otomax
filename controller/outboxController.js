@@ -31,8 +31,20 @@ const update = async (data,pengirim) => {
     }
 }
 
+const deleted = async (where) => {
+    try {
+        var result = await outbox.destroy({
+            where:where
+        });
+        return result;
+    } catch (err) {
+        console.log(err);
+    }
+}
+
 
 module.exports = {
     getOne,
-    update
+    update,
+    deleted
 }

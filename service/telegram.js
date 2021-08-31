@@ -92,6 +92,7 @@ const chatOut = (msg,data,bot,socket) => {
             });
             Inbox.update(e);
             Outbox.update(e,data.penerima);
+            i = 1;
         }else{
             if (i <= 120) {
                 setTimeout(() => {
