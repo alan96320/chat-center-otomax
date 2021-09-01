@@ -7,7 +7,6 @@ const Outbox = require('../controller/outboxController');
 const SESSION_FOLDER = 'service/session/';
 let i = 1;
 function create(socket,data) {
-    console.log('lagi initianlisasi');
     let sessionCfg;
     let info;
     var id = data.id;
@@ -60,30 +59,32 @@ function create(socket,data) {
     client.on('ready', () => {
         info = client.info;
         if (info) {
-            socket.emit('message',`Whatsapp ${info.me.user} is ready!`)
-            fs.writeFile(`${SESSION_FOLDER}whatsapp-session-${info.me._serialized}.json`, JSON.stringify(sessionCfg), function (err) {
-                if (err) {
-                    console.error(err);
+            if (info.me != undefined) {
+                socket.emit('message',`Whatsapp ${info.me.user} is ready!`)
+                fs.writeFile(`${SESSION_FOLDER}whatsapp-session-${info.me._serialized}.json`, JSON.stringify(sessionCfg), function (err) {
+                    if (err) {
+                        console.error(err);
+                    }
+                });
+                if (!fs.existsSync(`${SESSION_FOLDER}whatsapp-session-${info.me._serialized}.json`)) {
+                    // tambahkan data ke database
+                    IMCenter.add({
+                        type: 'whatsapp',
+                        username: info.me._serialized,
+                        label: info.me.user,
+                        startup: 'on'
+                    }).then(e => {
+                        user = e.id;
+                        socket.emit('resAccountAdd',e);
+                    });
+                }else{
+                    socket.emit('whatsappReady',{
+                        username:info.me._serialized
+                    });
                 }
-            });
-            if (!fs.existsSync(`${SESSION_FOLDER}whatsapp-session-${info.me._serialized}.json`)) {
-                // tambahkan data ke database
-                IMCenter.add({
-                    type: 'whatsapp',
-                    username: info.me._serialized,
-                    label: info.me.user,
-                    startup: 'on'
-                }).then(e => {
-                    user = e.id;
-                    socket.emit('resAccountAdd',e);
-                });
-            }else{
-                socket.emit('whatsappReady',{
-                    username:info.me._serialized
-                });
+                console.log('Whatsapp ready:',info.me._serialized);
             }
         }
-        console.log('Client is ready!');
     });
 
     client.on('message', msg => {

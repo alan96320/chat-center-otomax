@@ -16,6 +16,7 @@ let sequelize = new Sequelize(
     {
         host: config.host,
         dialect:config.dialect,
+        logging: false,
         dialectOptions: {
           options: {
               enableArithAbort: false,

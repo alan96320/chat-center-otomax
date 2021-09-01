@@ -12,7 +12,7 @@ function create(socket,data,conn) {
     });
     
     conn.on('online', function(e) {
-        console.log('Connected with: '+e.jid.user);
+        console.log('Jabbim ready: '+e.jid.user);
         socket.emit('message', 'Connected with JID: ' + e.jid.user);
         socket.emit('resJabbimConn',{
             status: true,

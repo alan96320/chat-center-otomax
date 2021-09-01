@@ -31,6 +31,7 @@ const MyBot = async (token, socket, username, terminal) => {
     if (session == undefined) {
         const bot = new TelegramBot(token,{polling: true});
         await bot.getMe().then(async (me) => {
+            console.log('Telegram Ready:',me.username);
             socket.emit('message', `Bot ${me.username} is connected...`);
             socket.emit('TelegramReady',{
                 username: me.username,
