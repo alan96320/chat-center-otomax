@@ -165,7 +165,6 @@ $(document).ready( async () =>{
                 iconText.text('telegram');
                 btnAddAccount.attr('data-type','telegram');
                 if (dataAccount != null) {
-                    console.log(dataAccount.telegram);
                     dataAccount.telegram.forEach(el => {
                         var html = profileAccount({
                             simmer:false,
@@ -266,9 +265,7 @@ $(document).ready( async () =>{
         loading($('#qrCodeaArea'),false);
     })
     socket.on('whatsappReady', (data) => {
-        console.log(data);
         var target = $(`.listContack[data-username="${data.username}"], .list-chat-area[data-username="${data.username}"]`);
-        console.log(target);
         target.removeClass('simmer')
             .find('.account-status')
             .removeClass('text-muted')
@@ -392,45 +389,28 @@ $(document).ready( async () =>{
             data.color = 'text-success';
             data.status = 'Online';
         }
-        var target = $(`.listContack[data-username="${data.username}"], .list-chat-area[data-username="${data.username}"]`);
-        if (target.length > 0) {
-            target.removeClass('simmer')
-                .find('.account-status')
-                .removeClass('text-muted')
-                .removeClass('text-danger')
-                .addClass('text-success')
-                .html('<i class="fas fa-circle"></i> Online');
-            if (dataAccount != null) {
-                dataAccount[type].forEach((element,index) => {
-                    if (element.username == data.username) {
-                        dataAccount[type][index].status = 'Online';
-                        dataAccount[type][index].color = 'text-success';
-                    }
+
+        if (type == sessionStorage.getItem('menu-active')) {
+            var html = profileAccount({
+                simmer:simmer,
+                username:data.username,
+                label:data.label,
+                color:data.color,
+                status:data.status,
+                type:type
+            });
+            html.click(function () { 
+                var username = $(this).attr('data-username');
+                sessionStorage.setItem('accountActive',username);
+                accountArea.find('.listContack').removeClass('active');
+                $(this).addClass('active');
+                $(this).removeClass('notif-on');
+                getChat({
+                    username:username,
+                    type: type,
                 });
-            }
-        } else {
-            if (type == sessionStorage.getItem('menu-active')) {
-                var html = profileAccount({
-                    simmer:simmer,
-                    username:data.username,
-                    label:data.label,
-                    color:data.color,
-                    status:data.status,
-                    type:type
-                });
-                html.click(function () { 
-                    var username = $(this).attr('data-username');
-                    sessionStorage.setItem('accountActive',username);
-                    accountArea.find('.listContack').removeClass('active');
-                    $(this).addClass('active');
-                    $(this).removeClass('notif-on');
-                    getChat({
-                        username:username,
-                        type: $(this).addClass('data-type'),
-                    });
-                })
-                accountArea.append(html);
-            }
+            })
+            accountArea.append(html);
         }
     })
 

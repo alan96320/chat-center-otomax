@@ -54,7 +54,6 @@ function create(socket,data) {
     });
 
     client.on('authenticated', (session) => {
-        console.log('AUTHENTICATED', session);
         sessionCfg=session;
     });
 
@@ -62,12 +61,12 @@ function create(socket,data) {
         info = client.info;
         if (info) {
             socket.emit('message',`Whatsapp ${info.me.user} is ready!`)
+            fs.writeFile(`${SESSION_FOLDER}whatsapp-session-${info.me._serialized}.json`, JSON.stringify(sessionCfg), function (err) {
+                if (err) {
+                    console.error(err);
+                }
+            });
             if (!fs.existsSync(`${SESSION_FOLDER}whatsapp-session-${info.me._serialized}.json`)) {
-                fs.writeFile(`${SESSION_FOLDER}whatsapp-session-${info.me._serialized}.json`, JSON.stringify(sessionCfg), function (err) {
-                    if (err) {
-                        console.error(err);
-                    }
-                });
                 // tambahkan data ke database
                 IMCenter.add({
                     type: 'whatsapp',
@@ -142,15 +141,61 @@ function chatOut(msg,socket,data,terminal) {
             msg.reply(e.pesan);
             Inbox.update(e);
             Outbox.update(e,data.penerima,terminal);
+            ii = 1;
+            if (e.kode_transaksi != null) {
+                chatOutTranction({
+                    kode_transaksi:e.kode_transaksi,
+                    penerima:data.penerima,
+                    msg:msg,
+                    socket:socket,
+                    terminal:terminal
+                });
+            }
         }else{
-            if (i <= 120) {
+            if (ii <= 120) {
                 setTimeout(() => {
                     chatOut(msg,socket,data,terminal);
-                    i++;
+                    ii++;
                 }, 500);
             }else{
-                i = 1;
+                ii = 1;
                 console.log('percobaan melebihi batas');
+            }
+        }
+    })
+}
+
+const chatOutTranction = (data) => {
+    console.log('Get Trasaction- '+ii);
+    Outbox.getOneGlobal({
+        kode_inbox:null,
+        kode_transaksi:data.kode_transaksi
+    }).then((e) => {
+        if (e) {
+            // kirimkan ke brouser
+            data.socket.emit('chatOut',{
+                username:data.penerima,
+                pesan:e.pesan,
+                tanggal:e.tgl_entri
+            });
+
+            // kirimkan ke provider
+            data.msg.reply(e.pesan);
+
+            // update ke database
+            Outbox.update(e,data.penerima,data.terminal);
+
+            // reset number
+            ii = 1;
+        }else{
+            if (ii <= 120) {
+                setTimeout(() => {
+                    chatOutTranction(data);
+                    ii++;
+                }, 500);
+            }else{
+                ii = 1;
+                console.log('melebihi batas permintaan');
             }
         }
     })

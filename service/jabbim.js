@@ -83,11 +83,21 @@ function chatOutJabbim(conn,socket,data,terminal) {
                 pesan:e.pesan,
                 tanggal:e.tgl_entri
             });
-            socket.emit('message', 'Out from: ' + data.pengirim + ' || to: ' + data.pengirim + ' || message: '+e.pesan);
+            socket.emit('message', 'Out from: ' + data.penerima + ' || to: ' + data.pengirim + ' || message: '+e.pesan);
             conn.send(data.pengirim,e.pesan); // balasan ke jabbim
             await Inbox.update(e); // update inbox
             await Outbox.update(e,data.penerima,terminal); // update outbox
             i = 1;
+            if (e.kode_transaksi != null) {
+                chatOutTranction({
+                    kode_transaksi:e.kode_transaksi,
+                    penerima:data.penerima,
+                    pengirim:data.pengirim,
+                    conn:conn,
+                    socket:socket,
+                    terminal:terminal
+                });
+            }
         }else{
             if (i <= 120) {
                 setTimeout(() => {
@@ -97,6 +107,42 @@ function chatOutJabbim(conn,socket,data,terminal) {
             }else{
                 i = 1;
                 console.log('percobaan melebihi batas');
+            }
+        }
+    })
+}
+
+const chatOutTranction = (data) => {
+    console.log('Get Trasaction- '+i);
+    Outbox.getOneGlobal({
+        kode_inbox:null,
+        kode_transaksi:data.kode_transaksi
+    }).then((e) => {
+        if (e) {
+            // kirimkan ke brouser
+            data.socket.emit('chatOut',{
+                username:data.penerima,
+                pesan:e.pesan,
+                tanggal:e.tgl_entri
+            });
+
+            // kirimkan ke provider
+            data.conn.send(data.pengirim,e.pesan);
+
+            // update ke database
+            Outbox.update(e,data.penerima,data.terminal);
+
+            // reset number
+            i = 1;
+        }else{
+            if (i <= 120) {
+                setTimeout(() => {
+                    chatOutTranction(data);
+                    i++;
+                }, 500);
+            }else{
+                i = 1;
+                console.log('melebihi batas permintaan');
             }
         }
     })

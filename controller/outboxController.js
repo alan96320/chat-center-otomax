@@ -44,9 +44,20 @@ const deleted = async (where) => {
     }
 }
 
+const getOneGlobal = async (where) => {
+    try {
+        var result = await outbox.findOne({ 
+            where:where
+        });
+        return result;
+    } catch (err) {
+        console.log(err);
+    }
+}
 
 module.exports = {
     getOne,
     update,
-    deleted
+    deleted,
+    getOneGlobal
 }

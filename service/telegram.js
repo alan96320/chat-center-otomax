@@ -94,6 +94,16 @@ const chatOut = (msg,data,bot,socket,terminal) => {
             Inbox.update(e);
             Outbox.update(e,data.penerima,terminal);
             i = 1;
+            if (e.kode_transaksi != null) {
+                chatOutTranction({
+                    kode_transaksi:e.kode_transaksi,
+                    penerima:data.penerima,
+                    bot:bot,
+                    msg:msg,
+                    socket:socket,
+                    terminal:terminal
+                });
+            }
         }else{
             if (i <= 120) {
                 setTimeout(() => {
@@ -103,6 +113,44 @@ const chatOut = (msg,data,bot,socket,terminal) => {
             }else{
                 i = 1;
                 console.log('percobaan melebihi batas');
+            }
+        }
+    })
+}
+
+const chatOutTranction = (data) => {
+    console.log('Get Trasaction- '+i);
+    Outbox.getOneGlobal({
+        kode_inbox:null,
+        kode_transaksi:data.kode_transaksi
+    }).then((e) => {
+        if (e) {
+            // kirimkan ke brouser
+            data.socket.emit('chatOut',{
+                username:data.penerima,
+                pesan:e.pesan,
+                tanggal:e.tgl_entri
+            });
+
+            // kirimkan ke provider
+            data.bot.sendMessage(data.msg.chat.id, e.pesan,{
+                reply_to_message_id:data.msg.message_id
+            });
+
+            // update ke database
+            Outbox.update(e,data.penerima,data.terminal);
+
+            // reset number
+            i = 1;
+        }else{
+            if (i <= 120) {
+                setTimeout(() => {
+                    chatOutTranction(data);
+                    i++;
+                }, 500);
+            }else{
+                i = 1;
+                console.log('melebihi batas permintaan');
             }
         }
     })
