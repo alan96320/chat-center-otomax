@@ -26,7 +26,7 @@ const authenticated = async (token) => {
 }
 
 
-const MyBot = async (token, socket, username) => {
+const MyBot = async (token, socket, username, terminal) => {
     var session = sessionBot.find(e => e.token == token);
     if (session == undefined) {
         const bot = new TelegramBot(token,{polling: true});
@@ -44,10 +44,11 @@ const MyBot = async (token, socket, username) => {
         })
 
         bot.on('message', (msg) => {
-            socket.emit('message', `In from: ${msg.from.first_name+' '+msg.from.last_name} || to: ${username} || message: ${msg.text}`);
+            console.log(msg);
+            socket.emit('message', `In from: ${msg.from.id} || to: ${username} || message: ${msg.text}`);
             Inbox.add({
                 penerima: username,
-                pengirim: msg.from.first_name+' '+msg.from.last_name,
+                pengirim: msg.from.id,
                 type: 'y',
                 pesan: msg.text
             }).then(e => {
@@ -58,7 +59,7 @@ const MyBot = async (token, socket, username) => {
                         pesan:msg.text,
                         tanggal:e.tgl_entri
                     });
-                    chatOut(msg,e,bot,socket);
+                    chatOut(msg,e,bot,socket,terminal);
                 }
             });
             
@@ -77,7 +78,7 @@ const MyBot = async (token, socket, username) => {
 }
 
 let i = 1;
-const chatOut = (msg,data,bot,socket) => {
+const chatOut = (msg,data,bot,socket,terminal) => {
     console.log('percobaan ke- '+i);
     Outbox.getOne(data).then(e => {
         if (e) {
@@ -91,12 +92,12 @@ const chatOut = (msg,data,bot,socket) => {
                 reply_to_message_id:msg.message_id
             });
             Inbox.update(e);
-            Outbox.update(e,data.penerima);
+            Outbox.update(e,data.penerima,terminal);
             i = 1;
         }else{
             if (i <= 120) {
                 setTimeout(() => {
-                    chatOut(msg,data,bot,socket);
+                    chatOut(msg,data,bot,socket,terminal);
                     i++;
                 }, 500);
             }else{

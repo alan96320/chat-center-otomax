@@ -10,6 +10,7 @@ function create(socket,data) {
     console.log('lagi initianlisasi');
     let sessionCfg;
     let info;
+    var id = data.id;
     if (data) {
         if (fs.existsSync(`${SESSION_FOLDER}whatsapp-session-${data.username}.json`)) {
             sessionCfg = require(`./session/whatsapp-session-${data.username}.json`);
@@ -74,6 +75,7 @@ function create(socket,data) {
                     label: info.me.user,
                     startup: 'on'
                 }).then(e => {
+                    user = e.id;
                     socket.emit('resAccountAdd',e);
                 });
             }else{
@@ -98,7 +100,7 @@ function create(socket,data) {
                     pesan:e.pesan,
                     tanggal:e.tgl_entri
                 });
-                chatOut(msg,socket,e);
+                chatOut(msg,socket,e,id);
             }
         });
     });
@@ -127,7 +129,7 @@ function create(socket,data) {
 }
 
 let ii = 1;
-function chatOut(msg,socket,data) {
+function chatOut(msg,socket,data,terminal) {
     console.log('percobaan ke- '+ii);
     Outbox.getOne(data).then(e => {
         if (e) {
@@ -139,11 +141,11 @@ function chatOut(msg,socket,data) {
             socket.emit('message', 'Out from: ' + data.penerima + ' || to: ' + data.pengirim + ' || message: '+e.pesan);
             msg.reply(e.pesan);
             Inbox.update(e);
-            Outbox.update(e,data.penerima);
+            Outbox.update(e,data.penerima,terminal);
         }else{
             if (i <= 120) {
                 setTimeout(() => {
-                    chatOut(msg,socket,data);
+                    chatOut(msg,socket,data,terminal);
                     i++;
                 }, 500);
             }else{

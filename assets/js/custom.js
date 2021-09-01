@@ -165,6 +165,7 @@ $(document).ready( async () =>{
                 iconText.text('telegram');
                 btnAddAccount.attr('data-type','telegram');
                 if (dataAccount != null) {
+                    console.log(dataAccount.telegram);
                     dataAccount.telegram.forEach(el => {
                         var html = profileAccount({
                             simmer:false,
@@ -265,7 +266,9 @@ $(document).ready( async () =>{
         loading($('#qrCodeaArea'),false);
     })
     socket.on('whatsappReady', (data) => {
+        console.log(data);
         var target = $(`.listContack[data-username="${data.username}"], .list-chat-area[data-username="${data.username}"]`);
+        console.log(target);
         target.removeClass('simmer')
             .find('.account-status')
             .removeClass('text-muted')
@@ -373,8 +376,11 @@ $(document).ready( async () =>{
             socket.emit('jabbimConn', data);
         }
         if (type == 'whatsapp') {
+            var cek = dataAccount.whatsapp.findIndex(e => e.username = data.username);
             modalWhatsapp.modal('hide');
-            dataAccount.whatsapp.push(data);
+            if (cek == -1) {
+                dataAccount.whatsapp.push(data);
+            }
             simmer = false;
             data.color = 'text-success';
             data.status = 'Online';
@@ -403,26 +409,28 @@ $(document).ready( async () =>{
                 });
             }
         } else {
-            var html = profileAccount({
-                simmer:simmer,
-                username:data.username,
-                label:data.label,
-                color:data.color,
-                status:data.status,
-                type:type
-            });
-            html.click(function () { 
-                var username = $(this).attr('data-username');
-                sessionStorage.setItem('accountActive',username);
-                accountArea.find('.listContack').removeClass('active');
-                $(this).addClass('active');
-                $(this).removeClass('notif-on');
-                getChat({
-                    username:username,
-                    type: $(this).addClass('data-type'),
+            if (type == sessionStorage.getItem('menu-active')) {
+                var html = profileAccount({
+                    simmer:simmer,
+                    username:data.username,
+                    label:data.label,
+                    color:data.color,
+                    status:data.status,
+                    type:type
                 });
-            })
-            accountArea.append(html);
+                html.click(function () { 
+                    var username = $(this).attr('data-username');
+                    sessionStorage.setItem('accountActive',username);
+                    accountArea.find('.listContack').removeClass('active');
+                    $(this).addClass('active');
+                    $(this).removeClass('notif-on');
+                    getChat({
+                        username:username,
+                        type: $(this).addClass('data-type'),
+                    });
+                })
+                accountArea.append(html);
+            }
         }
     })
 

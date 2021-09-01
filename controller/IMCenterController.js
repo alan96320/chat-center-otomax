@@ -6,7 +6,7 @@ const getAll = async () => {
     try {
         var data = await IMCenter.findAll({ 
             where:{
-                sender_speed:10
+                sender_speed:20
             },
             include: [{
                 model:inbox,

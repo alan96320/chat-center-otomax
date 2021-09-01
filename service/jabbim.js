@@ -21,10 +21,10 @@ function create(socket,data,conn) {
     });
     
     conn.on('chat', function(from, message) {
-        socket.emit('message', 'In from: ' + from + ' || to: ' + data.username + ' || message: '+message);
         Inbox.add({
             penerima:data.username,
             pengirim:from,
+            service_center:data.username,
             type:'g',
             pesan:message
         }).then(e => {
@@ -34,7 +34,7 @@ function create(socket,data,conn) {
                     pesan:e.pesan,
                     tanggal:e.tgl_entri
                 });
-                chatOutJabbim(conn,socket,e);
+                chatOutJabbim(conn,socket,e,data.id);
             }
         });
     });
@@ -50,6 +50,7 @@ function create(socket,data,conn) {
     });
     
     conn.on('subscribe', function(from) {
+        console.log('ada permintaan',from);
         socket.emit('message', 'Added contact: ' + from);
         conn.acceptSubscription(from);
     });
@@ -73,23 +74,24 @@ function logout(socket,conn,user) {
     }
 }
 let i = 1;
-function chatOutJabbim(conn,socket,data) {
+function chatOutJabbim(conn,socket,data,terminal) {
     console.log('percobaan ke- '+i);
-    Outbox.getOne(data).then(e => {
+    Outbox.getOne(data).then(async e => {
         if (e) {
             socket.emit('chatOut',{
                 username:data.penerima,
                 pesan:e.pesan,
                 tanggal:e.tgl_entri
             });
-            socket.emit('message', 'Out from: ' + data.penerima + ' || to: ' + data.pengirim + ' || message: '+e.pesan);
-            conn.send(data.pengirim,e.pesan);
-            Inbox.update(e);
-            Outbox.update(e,data.penerima);
+            socket.emit('message', 'Out from: ' + data.pengirim + ' || to: ' + data.pengirim + ' || message: '+e.pesan);
+            conn.send(data.pengirim,e.pesan); // balasan ke jabbim
+            await Inbox.update(e); // update inbox
+            await Outbox.update(e,data.penerima,terminal); // update outbox
+            i = 1;
         }else{
             if (i <= 120) {
                 setTimeout(() => {
-                    chatOutJabbim(conn,socket,data);
+                    chatOutJabbim(conn,socket,data,terminal);
                     i++;
                 }, 500);
             }else{

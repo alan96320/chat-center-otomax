@@ -24,6 +24,7 @@ const add = async (data) => {
         params.pengirim = data.pengirim;
         params.tipe_pengirim = data.type;
         params.pesan = data.pesan;
+        params.service_center = data.service_center;
         
         var result = await inbox.create(params);
         return result;

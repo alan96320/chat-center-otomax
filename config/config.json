@@ -1,7 +1,7 @@
 {
     "development": {
-      "username": "sa",
-      "password": "clasmild00",
+      "username": "",
+      "password": "",
       "database": "otomax",
       "host": "DESKTOP-JO4OLBS",
       "dialect": "mssql"
@@ -14,10 +14,10 @@
       "dialect": "mysql"
     },
     "production": {
-      "username": "root",
-      "password": null,
-      "database": "database_production",
-      "host": "127.0.0.1",
-      "dialect": "mysql"
+      "username": "API",
+      "password": "898989",
+      "database": "otomax",
+      "host": "MKIOSPAY",
+      "dialect": "mssql"
     }
 }

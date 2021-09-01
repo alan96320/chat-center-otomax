@@ -69,13 +69,15 @@ io.on('connection', async (socket) => {
         data.whatsapp.forEach(element => {
             socket.emit('message', 'Connecting with whatsapp: '+element.username);
             new whatsapp.create(socket,{
-                username:element.username
+                username:element.username,
+                id:element.id
             })
         });
     } else {
         socket.emit('message', 'Whatsapp ready...');
     }
     socket.on('addWhatsapp', async (data) => {
+        data.id = null;
         new whatsapp.create(socket,data);
     })
     socket.on('cancelScan',(status) => {
@@ -93,7 +95,7 @@ io.on('connection', async (socket) => {
         data.telegram.forEach(element => {
             socket.emit('message', 'Connecting with telegram: '+element.username);
             var token = CryptoJS.AES.decrypt(element.password, element.username).toString(CryptoJS.enc.Utf8);
-            telegram.MyBot(token,socket,element.username);
+            telegram.MyBot(token,socket,element.username,element.id);
         });
     }else{
         socket.emit('message', 'Telegram ready...');
@@ -111,7 +113,7 @@ io.on('connection', async (socket) => {
         }
         IMCenter.add(data).then(e => {
             if (data.type == 'telegram') {
-                telegram.MyBot(data.token,socket,e.username);
+                telegram.MyBot(data.token,socket,e.username,e.id);
             }
             socket.emit('resAccountAdd',e);
         });

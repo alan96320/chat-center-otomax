@@ -13,15 +13,17 @@ const getOne = async (data) => {
     }
 }
 
-const update = async (data,pengirim) => {
+const update = async (data,pengirim,terminal) => {
     try {
         var result = await outbox.update(
             {
                 status:20,
-                pengirim:pengirim
+                pengirim:pengirim,
+                kode_terminal: terminal,
+                wrkirim:1,
             },{
                 where:{
-                    kode:data.kode_inbox
+                    kode:data.kode
                 }
             }
         );

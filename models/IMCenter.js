@@ -68,7 +68,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       sender_speed: {
         type: DataTypes.STRING,
-        defaultValue: 10,
+        defaultValue: 20,
       },
       ex_kirim: {
         type: DataTypes.BOOLEAN,
