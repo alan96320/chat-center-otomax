@@ -7,6 +7,7 @@ const CryptoJS = require("crypto-js");
 const whatsapp = require('./service/whatsapp');
 const jabbim = require('./service/jabbim');
 const telegram = require('./service/telegram');
+const ChromeLauncher = require('chrome-launcher');
 
 const IMCenter = require('./controller/IMCenterController');
 const Inbox = require('./controller/inboxController');
@@ -16,12 +17,12 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-app.set('view engine','ejs');
+app.set('view engine', 'ejs');
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use('/fonts', express.static(path.join(__dirname, 'assets/fonts')));
 app.use('/img', express.static(path.join(__dirname, 'assets/img')));
 
-app.get('/',(req, res) =>{
+app.get('/', (req, res) => {
     res.render('chat');
 })
 
@@ -32,9 +33,9 @@ io.on('connection', async (socket) => {
     var data;
     await IMCenter.getAll().then(res => {
         data = {
-            "jabbim":res[3] ? res[3] : [],
-            "telegram":res[4] ? res[4] : [],
-            "whatsapp":res[5] ? res[5] : [],
+            "jabbim": res[3] ? res[3] : [],
+            "telegram": res[4] ? res[4] : [],
+            "whatsapp": res[5] ? res[5] : [],
         }
         socket.emit('dataAccount', data);
     })
@@ -42,12 +43,12 @@ io.on('connection', async (socket) => {
     // untuk jabbim
     socket.emit('message', 'Sedang mempersiapkan jabbim...');
     if (data.jabbim.length > 0) {
-        data.jabbim.forEach(async e =>  {
-            socket.emit('message', 'Connecting with jabbim: '+e.username);
+        data.jabbim.forEach(async e => {
+            socket.emit('message', 'Connecting with jabbim: ' + e.username);
             var conn = new xmpp.SimpleXMPP();
-            await new jabbim.create(socket,e,conn);
-            socket.on('logoutJabbim', function(data) {
-                jabbim.logout(socket,conn,data);
+            await new jabbim.create(socket, e, conn);
+            socket.on('logoutJabbim', function (data) {
+                jabbim.logout(socket, conn, data);
             });
         });
     } else {
@@ -55,11 +56,11 @@ io.on('connection', async (socket) => {
     }
 
     socket.on('jabbimConn', async (data) => {
-        socket.emit('message', 'Connecting with: '+data.username);
+        socket.emit('message', 'Connecting with: ' + data.username);
         var conn = new xmpp.SimpleXMPP();
-        await new jabbim.create(socket,data,conn);
-        socket.on('logoutJabbim', function(e) {
-            jabbim.logout(socket,conn,e);
+        await new jabbim.create(socket, data, conn);
+        socket.on('logoutJabbim', function (e) {
+            jabbim.logout(socket, conn, e);
         });
     })
 
@@ -67,10 +68,10 @@ io.on('connection', async (socket) => {
     socket.emit('message', 'Sedang mempersiapkan whatsapp...');
     if (data.whatsapp.length > 0) {
         data.whatsapp.forEach(element => {
-            socket.emit('message', 'Connecting with whatsapp: '+element.username);
-            new whatsapp.create(socket,{
-                username:element.username,
-                id:element.id
+            socket.emit('message', 'Connecting with whatsapp: ' + element.username);
+            new whatsapp.create(socket, {
+                username: element.username,
+                id: element.id
             })
         });
     } else {
@@ -78,11 +79,11 @@ io.on('connection', async (socket) => {
     }
     socket.on('addWhatsapp', async (data) => {
         data.id = null;
-        new whatsapp.create(socket,data);
+        new whatsapp.create(socket, data);
     })
-    socket.on('cancelScan',(status) => {
+    socket.on('cancelScan', (status) => {
         if (status) {
-            socket.emit('message','Scan QR canceled..');
+            socket.emit('message', 'Scan QR canceled..');
             console.log('Scan QR canceled..');
         }
     })
@@ -93,11 +94,11 @@ io.on('connection', async (socket) => {
     socket.emit('message', 'Sedang mempersiapkan telegram...');
     if (data.telegram.length > 0) {
         data.telegram.forEach(element => {
-            socket.emit('message', 'Connecting with telegram: '+element.username);
+            socket.emit('message', 'Connecting with telegram: ' + element.username);
             var token = CryptoJS.AES.decrypt(element.password, element.username).toString(CryptoJS.enc.Utf8);
-            telegram.MyBot(token,socket,element.username,element.id);
+            telegram.MyBot(token, socket, element.username, element.id);
         });
-    }else{
+    } else {
         socket.emit('message', 'Telegram ready...');
     }
 
@@ -106,20 +107,20 @@ io.on('connection', async (socket) => {
             await telegram.authenticated(data.token).then(e => {
                 if (e.status) {
                     data.username = e.username;
-                }else{
-                    socket.emit('errorAuthTelegram','Token is not found..');
+                } else {
+                    socket.emit('errorAuthTelegram', 'Token is not found..');
                 }
             });
         }
         IMCenter.add(data).then(e => {
             if (data.type == 'telegram') {
-                telegram.MyBot(data.token,socket,e.username,e.id);
+                telegram.MyBot(data.token, socket, e.username, e.id);
             }
-            socket.emit('resAccountAdd',e);
+            socket.emit('resAccountAdd', e);
         });
     });
 
-    socket.on('AccountUpdate',async (data) => {
+    socket.on('AccountUpdate', async (data) => {
         if (data.type == 'telegram') {
             data.password = null;
             if (data.token != '') {
@@ -127,23 +128,23 @@ io.on('connection', async (socket) => {
                     if (e.status) {
                         data.username = e.username;
                         data.password = data.token;
-                    }else{
-                        socket.emit('errorAuthTelegram','Token is not found..');
+                    } else {
+                        socket.emit('errorAuthTelegram', 'Token is not found..');
                     }
-                });   
+                });
             }
-            
-            
+
+
         }
         IMCenter.update(data).then(e => {
             if (data.type == 'telegram') {
                 console.log(e.username);
                 if (data.password != null) {
                     var token = CryptoJS.AES.decrypt(e.password, e.username).toString(CryptoJS.enc.Utf8);
-                    telegram.MyBot(token,socket,e.username);
+                    telegram.MyBot(token, socket, e.username);
                 }
             }
-            socket.emit('resAccountUpdate',e);
+            socket.emit('resAccountUpdate', e);
         })
     })
 
@@ -157,9 +158,9 @@ io.on('connection', async (socket) => {
                 await Outbox.deleted({
                     pengirim: data.username
                 }).then(e => {
-                    socket.emit('resDeleteAccount',{
+                    socket.emit('resDeleteAccount', {
                         username: data.username,
-                        type:data.type
+                        type: data.type
                     })
                 })
             })
@@ -170,13 +171,13 @@ io.on('connection', async (socket) => {
     socket.on('getChat', async (data) => {
         var type = data.type == 'jabbim' ? 'g' : 'y';
         Inbox.getAll({
-            penerima:data.username,
-            type:type
+            penerima: data.username,
+            type: type
         }).then(e => {
-            socket.emit('resGetChat',{
-                username:data.username,
-                message:e,
-                type:data.type
+            socket.emit('resGetChat', {
+                username: data.username,
+                message: e,
+                type: data.type
             });
         })
     })
@@ -188,15 +189,22 @@ io.on('connection', async (socket) => {
             await Outbox.deleted({
                 pengirim: data.username
             }).then(e => {
-                socket.emit('resClearAccount',{
+                socket.emit('resClearAccount', {
                     username: data.username
                 })
             })
         })
     })
-    
+
 })
 
-server.listen(8000,function () { 
-    console.log('App running on: localhost:8000');
+
+server.listen(8000, function () {
+    ChromeLauncher.launch({
+        startingUrl: 'http://localhost:8000',
+    }).then(chrome => {
+        console.log('App running on: http://localhost:8000');
+        console.log(`Chrome debugging port running on ${chrome.port}`);
+    });
+
 })
