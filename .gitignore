@@ -4,3 +4,4 @@
 /service/session/*.json
 
 package-lock.json
+.env
