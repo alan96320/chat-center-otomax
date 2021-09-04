@@ -4,16 +4,21 @@ const io = require('socket.io-client');
 const socket = io('http://localhost:8000/service');
 const { Op } = require("sequelize");
 const { IMCenter, inbox, outbox } = require('./models');
+const moment = require('moment');
 
 setInterval(async() => {
     try {
+        var today = moment(new Date().toUTCString()).format();
         var data = await outbox.findAll({ 
             where:{
                 tipe_penerima:{
                     [Op.in]: ['y', 'Y', 'g', 'G']
                 },
-                wrkirim:{
+                ex_kirim:{
                     [Op.is]: null,
+                },
+                tgl_entri:{
+                    [Op.gt]: today
                 },
             },
             include: [{
@@ -23,6 +28,10 @@ setInterval(async() => {
                 },
             }]
         });
+        // data = data.map(e => {
+        //     return e.penerima;
+        // })
+        // console.log(data);
         if (data.length > 0) {
             data.forEach(element => {
                 if (element.IMCenter) {

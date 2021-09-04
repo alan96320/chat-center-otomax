@@ -20,7 +20,7 @@ const update = async (data) => {
                 status:20,
                 pengirim: data.pengirim,
                 kode_terminal: data.terminal,
-                wrkirim:1,
+                ex_kirim:1,
                 kode_inbox: data.kode_inbox
             },{
                 where:{

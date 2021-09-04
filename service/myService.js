@@ -6,7 +6,7 @@ const Service = Windows.Service;
 var dir = path.join(path.dirname(__dirname), 'streaming.js');
 
 var svc = new Service({
-    name:'IMCenter Ototmax',
+    name:'JSCENTER',
     description: 'Created By Cep Alan Suhendar',
     script: dir,
 });

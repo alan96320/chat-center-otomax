@@ -176,7 +176,9 @@ io.of('/service').on('connection', async (socket) => {
             if (ex.length > 0) {
                 var WA = ex.find(e => e.username == data.username);
                 var client = WA.client;
-                client.sendMessage(data.penerima, data.pesan).then(async response => {
+                var penerima = data.penerima.replace('whatsapp.net','c.us');
+                client.sendMessage(penerima, data.pesan).then(async response => {
+                    console.log('sukses mengirimkan pesan ke',penerima);
                     await Outbox.update({
                         kode: data.idOutbox,
                         kode_inbox: data.idinbox,
@@ -189,7 +191,7 @@ io.of('/service').on('connection', async (socket) => {
                         })
                     }
                 }).catch(err => {
-                    console.log(`Mengirimkan pesan ke ${data.penerima} gagal`,err);
+                    console.log(`Mengirimkan pesan ke ${penerima} gagal`,err);
                 });
             }
         })

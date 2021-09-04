@@ -19,8 +19,7 @@ module.exports = (sequelize, DataTypes) => {
             autoIncrement: true
         },
         tgl_entri: {
-            type: DataTypes.DATE,
-            defaultValue:sequelize.fn('GETDATE')
+            type: DataTypes.DATEONLY,
         },
         penerima: {
             type: DataTypes.STRING,
