@@ -2,18 +2,12 @@ const { IMCenter, inbox, outbox } = require('../models');
 const helper = require('../helpers/helpers');
 const CryptoJS = require("crypto-js");
 
-const getAll = async () => {
+const getAll = async (where) => {
     try {
         var data = await IMCenter.findAll({ 
-            where:{
-                sender_speed:20
-            },
-            include: [{
-                model:inbox,
-                include: [outbox]
-            }]
+            where:where
         });
-        return helper.groupBy(data,'type');
+        return data;
     } catch (err) {
         console.log(err);
     }
@@ -31,6 +25,7 @@ const add = async (data) => {
         if (data.type == 'whatsapp') {
             params.username = data.username;
             params.password = CryptoJS.AES.encrypt(data.username, data.label).toString();
+            params.status_text = 'Online';
         }
         if (data.type == 'telegram') {
             params.password = CryptoJS.AES.encrypt(data.token, data.username).toString();

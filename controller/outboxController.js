@@ -13,14 +13,15 @@ const getOne = async (data) => {
     }
 }
 
-const update = async (data,pengirim,terminal) => {
+const update = async (data) => {
     try {
         var result = await outbox.update(
             {
                 status:20,
-                pengirim:pengirim,
-                kode_terminal: terminal,
+                pengirim: data.pengirim,
+                kode_terminal: data.terminal,
                 wrkirim:1,
+                kode_inbox: data.kode_inbox
             },{
                 where:{
                     kode:data.kode
@@ -46,8 +47,11 @@ const deleted = async (where) => {
 
 const getOneGlobal = async (where) => {
     try {
-        var result = await outbox.findOne({ 
-            where:where
+        var result = await outbox.findAll({ 
+            where:where,
+            include: [{
+                model:IMCenter
+            }]
         });
         return result;
     } catch (err) {

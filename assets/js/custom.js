@@ -1,6 +1,6 @@
 $(document).ready( async () =>{ 
     $('.code-container').niceScroll();
-    const socket = io("http://localhost:8000");
+    const socket = io("http://localhost:8000/");
     var log = $('.log-area'),
         dataAccount = null,
         content = $('.content-area'),
@@ -18,25 +18,25 @@ $(document).ready( async () =>{
         dataNullArea = $('.data-null'),
         chatArea = $('.list-chat-area');
     
-    await socket.on('dataAccount',(data) => {
-        data.jabbim = $.map(data.jabbim, function (el, i) {
-            el.status = 'Offline';
-            el.color = 'text-muted';
-            return el;
-        });
-        data.whatsapp = $.map(data.whatsapp, function (el, i) {
-            el.status = 'Connecting...';
-            el.color = 'text-muted';
-            return el;
-        });
-        data.telegram = $.map(data.telegram, function (el, i) {
-            el.status = 'Connecting...';
-            el.color = 'text-muted';
-            return el;
-        });
-        dataAccount = data;
-        showMenu(sessionStorage.getItem('menu-active'));
-    })
+    // await socket.on('dataAccount',(data) => {
+    //     data.jabbim = $.map(data.jabbim, function (el, i) {
+    //         el.status = 'Offline';
+    //         el.color = 'text-muted';
+    //         return el;
+    //     });
+    //     data.whatsapp = $.map(data.whatsapp, function (el, i) {
+    //         el.status = 'Connecting...';
+    //         el.color = 'text-muted';
+    //         return el;
+    //     });
+    //     data.telegram = $.map(data.telegram, function (el, i) {
+    //         el.status = 'Connecting...';
+    //         el.color = 'text-muted';
+    //         return el;
+    //     });
+    //     dataAccount = data;
+    //     showMenu(sessionStorage.getItem('menu-active'));
+    // })
     
     socket.on('message', (msg) => {
         $('#log').append($('<li>').text(msg));
@@ -128,37 +128,7 @@ $(document).ready( async () =>{
                 icon.removeAttr('class').addClass('fab fa-whatsapp mr-3 logo-chat');
                 iconText.text('whatsapp');
                 btnAddAccount.attr('data-type','whatsapp');
-                if (dataAccount != null) {
-                    dataAccount.whatsapp.forEach(el => {
-                        var html = profileAccount({
-                            simmer:false,
-                            username:el.username,
-                            label:el.label,
-                            color:el.color,
-                            status:el.status,
-                            type:'whatsapp'
-                        });
-                        html.click(function () { 
-                            var username = $(this).attr('data-username');
-                            sessionStorage.setItem('accountActive',username);
-                            accountArea.find('.listContack').removeClass('active');
-                            $(this).addClass('active');
-                            $(this).removeClass('notif-on');
-                            getChat({
-                                username:username,
-                                type:link,
-                            });
-                        })
-                        accountArea.append(html);
-                    });
-                    if (sessionStorage.getItem('accountActive') && dataAccount.whatsapp.length > 0) {
-                        $(`.listContack[data-username="${sessionStorage.getItem('accountActive')}"]`).addClass('active');
-                        getChat({
-                            username:sessionStorage.getItem('accountActive'),
-                            type:link
-                        });
-                    }
-                }
+                socket.emit('getData','whatsapp');
             }
             if (link == 'telegram') {
                 icon.removeAttr('class').addClass('fab fa-telegram mr-3 logo-chat');
@@ -264,22 +234,9 @@ $(document).ready( async () =>{
         $('#qrCodeaArea').find('img').attr('src',data.url).show();
         loading($('#qrCodeaArea'),false);
     })
-    socket.on('whatsappReady', (data) => {
-        var target = $(`.listContack[data-username="${data.username}"], .list-chat-area[data-username="${data.username}"]`);
-        target.removeClass('simmer')
-            .find('.account-status')
-            .removeClass('text-muted')
-            .removeClass('text-danger')
-            .addClass('text-success')
-            .html('<i class="fas fa-circle"></i> Online');
-        if (dataAccount != null) {
-            dataAccount.whatsapp.forEach((element,index) => {
-                if (element.username == data.username) {
-                    dataAccount.whatsapp[index].status = 'Online';
-                    dataAccount.whatsapp[index].color = 'text-success';
-                }
-            });
-        }
+    socket.on('resAddwhatsapp', (status) => {
+        modalWhatsapp.modal('hide');
+        socket.emit('getData','whatsapp');
     })
     socket.on('timeOutScan', (message) => {
         $('#qrCodeaArea').find('label').text(message);
@@ -359,6 +316,34 @@ $(document).ready( async () =>{
     })
 
 
+    // untk respon pengambilan data
+    socket.on('resGetData', (res) => {
+        var type = sessionStorage.getItem('menu-active');
+        if (res.status == type) {
+            res.data.forEach(value => {
+                var html = profileAccount({
+                    username:value.username,
+                    label:value.label,
+                    color:value.status_text == 'Online' ? 'text-success' : 'text-muted',
+                    status:value.status_text,
+                    type:type,
+                    id:value.id
+                });
+                html.click(function () { 
+                    var username = $(this).attr('data-username');
+                    sessionStorage.setItem('accountActive',username);
+                    accountArea.find('.listContack').removeClass('active');
+                    $(this).addClass('active');
+                    $(this).removeClass('notif-on');
+                    socket.emit('getChat',{
+                        username:username,
+                        id: value.id,
+                    })
+                })
+                accountArea.append(html);
+            });
+        }
+    })
 
 
     socket.on('resAccountAdd', data => {
@@ -500,10 +485,6 @@ $(document).ready( async () =>{
             }
         }
     })
-
-    function getChat(data) {
-        socket.emit('getChat',data);
-    }
 
     // ambil responnya setelah chat di ambil
     socket.on('resGetChat', data => {
@@ -672,7 +653,7 @@ $(document).ready( async () =>{
 
     function profileAccount(data) {
         return $(`
-                <li class="media m-0 p-0 py-2 pl-3 align-items-center listContack ${data.simmer ? 'simmer' : ''}" data-username="${data.username}" data-type="${data.type}">
+                <li class="media m-0 p-0 py-2 pl-3 align-items-center listContack ${data.simmer ? 'simmer' : ''}" data-username="${data.username}" data-type="${data.type}" data.id="${data.id}">
                     <img alt="image" class="mr-3 rounded-circle" width="50" src="img/avatar/avatar-1.png">
                     <div class="media-body">
                         <div class="mt-0 mb-1 font-weight-bold text-capitalize text-truncate account-label">${data.label}</div>

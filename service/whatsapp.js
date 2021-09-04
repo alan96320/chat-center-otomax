@@ -5,8 +5,13 @@ const IMCenter = require('../controller/IMCenterController');
 const Inbox = require('../controller/inboxController');
 const Outbox = require('../controller/outboxController');
 const SESSION_FOLDER = 'service/session/';
+
+var socket = null;
+
 let i = 1;
-function create(socket,data) {
+const sessions = [];
+
+function create(data){
     let sessionCfg;
     let info;
     var id = data.id;
@@ -45,10 +50,11 @@ function create(socket,data) {
             });
             socket.emit('message', 'QR Code whatsapp received, scan please!');
         });
-        if (i >= 10) {
+        if (i >= 5) {
             socket.emit('message', 'Times out scan QR');
             socket.emit('timeOutScan','Times out this page, Please refresh or close and create again..');
             i = 1;
+            client.destroy();
         }
     });
 
@@ -66,6 +72,8 @@ function create(socket,data) {
                         console.error(err);
                     }
                 });
+
+                // ini jika pengguna baru
                 if (!fs.existsSync(`${SESSION_FOLDER}whatsapp-session-${info.me._serialized}.json`)) {
                     // tambahkan data ke database
                     IMCenter.add({
@@ -74,15 +82,24 @@ function create(socket,data) {
                         label: info.me.user,
                         startup: 'on'
                     }).then(e => {
+                        console.log(e);
                         user = e.id;
-                        socket.emit('resAccountAdd',e);
-                    });
-                }else{
-                    socket.emit('whatsappReady',{
-                        username:info.me._serialized
+                        socket.emit('resAddwhatsapp',e);
                     });
                 }
+                // client.sendMessage('6281268018693@c.us','testing');
                 console.log('Whatsapp ready:',info.me._serialized);
+
+                // Tambahkan client ke sessions
+                var index = sessions.findIndex(e => e.username == info.me._serialized);
+                if (index > -1) {
+                    sessions[index].client = client;
+                }else{
+                    sessions.push({
+                        username: info.me._serialized,
+                        client: client
+                    });
+                }
             }
         }
     });
@@ -92,7 +109,8 @@ function create(socket,data) {
             penerima:msg.to,
             pengirim:msg.from,
             type:'y',
-            pesan:msg.body
+            pesan:msg.body,
+            kode_terminal:id
         }).then(e => {
             if (e) {
                 socket.emit('chatIn',{
@@ -100,7 +118,7 @@ function create(socket,data) {
                     pesan:e.pesan,
                     tanggal:e.tgl_entri
                 });
-                chatOut(msg,socket,e,id);
+                // chatOut(msg,socket,e,id);
             }
         });
     });
@@ -202,4 +220,49 @@ const chatOutTranction = (data) => {
     })
 }
 
-module.exports = {create};
+const getSession = async () => {
+    return sessions;
+}
+
+const init = async (io) => {
+    socket = io.of('/');
+
+    await IMCenter.getAll({
+        sender_speed:20,
+        type:5
+    }).then((e) => {
+        socket.emit('message','Whatsapp ready');
+        console.log('Lagi looping data whatsapp');
+        e.forEach(element => {
+            create(element);
+        });
+    })
+
+    socket.on('addWhatsapp',(data) => {
+        console.log('Create new whatsapp.');
+        create(data);
+    })
+    
+    socket.on('cancelScan', (status) => {
+        if (status) {
+            socket.emit('message', 'Scan QR canceled..');
+            console.log('Scan QR canceled..');
+        }
+    })
+    
+    socket.on('sendMessageWhatsapp', (data) => {
+        console.log('diterima oleh whatsapp',data);
+        // const number = data.username;
+        // const message = data.pesan;
+      
+        // const client = sessions.find(sess => sess.username == username).client;
+      
+        // client.sendMessage(number, message).then(response => {
+        //   console.log(`Mengirimkan pesan ke ${number} berhasil`);
+        // }).catch(err => {
+        //     console.log(`Mengirimkan pesan ke ${number} gagal`,err);
+        // });
+    });
+}
+
+module.exports = {create,init,getSession};

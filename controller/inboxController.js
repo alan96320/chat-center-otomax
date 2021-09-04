@@ -1,12 +1,9 @@
 const { IMCenter, inbox, outbox } = require('../models');
 
-const getAll = async (data) => {
+const getAll = async (where) => {
     try {
         var result = await inbox.findAll({ 
-            where:{
-                penerima:data.penerima,
-                tipe_pengirim:data.type
-            },
+            where:where,
             include: [{
                 model:outbox
             }]
@@ -25,7 +22,7 @@ const add = async (data) => {
         params.tipe_pengirim = data.type;
         params.pesan = data.pesan;
         params.service_center = data.service_center;
-        
+        params.kode_terminal = data.kode_terminal;
         var result = await inbox.create(params);
         return result;
     } catch (err) {

@@ -1,6 +1,7 @@
 /node_modules
 /vendor
 /config
+/daemon
 /service/session/*.json
 
 package-lock.json

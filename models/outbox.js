@@ -2,9 +2,9 @@
 const { Model } = require('sequelize')
 module.exports = (sequelize, DataTypes) => {
   class outbox extends Model {
-    // static associate({ outbox }) {
-    //   this.hasMany(outbox, { foreignKey: 'userId', as: 'posts' })
-    // }
+    static associate({ IMCenter }) {
+      this.hasOne(IMCenter, { foreignKey: 'username', sourceKey: 'pengirim'})
+    }
 
     // toJSON() {
     //   return { ...this.get(), id: undefined }
