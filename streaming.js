@@ -31,7 +31,7 @@ setInterval(async() => {
                         socket.emit('sendMessageWhatsapp',{
                             username:element.IMCenter.username,
                             pesan:element.pesan,
-                            idOutbox:element.id,
+                            idOutbox:element.kode,
                             idImcenter:element.IMCenter.id,
                             penerima:element.penerima,
                             idinbox:element.kode_inbox
