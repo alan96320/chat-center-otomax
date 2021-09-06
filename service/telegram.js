@@ -76,6 +76,12 @@ const create = async (socket,data,createNew) => {
         });
         
     })
+
+    bot.onText(/myid/, (msg, match) => {
+        bot.getMe().then(e => {
+            bot.sendMessage(msg.chat.id, 'Your ID: '+e.id);
+        })
+    });
 }
 
 const abort = async (username) => {
