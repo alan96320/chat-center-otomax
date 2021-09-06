@@ -110,51 +110,45 @@ function create(socket,data){
     client.on('message',async msg => {
         var number = msg.from.replace('@c.us','');
         await pengirim.get({
-            tipe_pengirim:'y',
             pengirim:{
                 [Op.like]: '%'+number+'%',
             }
         }).then(async e => {
             if (e.length > 0) {
-                var fine = e.find(ex => ex.pengirim == msg.from);
-                var datax = e.find(ex => ex.pengirim.search('@whatsapp.net') > -1);
-                if (!fine) {
-                    if (datax) {
-                        datax = typeof(datax) === 'object' ? datax : datax[0];
-                        await pengirim.add({
-                            pengirim:msg.from,
-                            tipe_pengirim:'y',
-                            kode_reseller:datax.kode_reseller,
-                            kirim_info:datax.kirim_info,
-                            wrkirim:datax.wrkirim
-                        })
-                    } else {
-                        msg.reply('Nomor anda belum terdaftar / Anda Bukan Reseller');
-                    }
+                var find = e.find(ex => ex.pengirim == msg.from);
+                if (!find) {
+                    var data = e[0];
+                    await pengirim.add({
+                        pengirim:msg.from,
+                        tipe_pengirim:'y',
+                        kode_reseller:data.kode_reseller,
+                        kirim_info:data.kirim_info,
+                        wrkirim:data.wrkirim
+                    })
                 }
+                let dt = msg.body.split('\n');
+                dt.forEach(element => {
+                    Inbox.add({
+                        penerima:msg.to,
+                        pengirim:msg.from,
+                        type:'y',
+                        pesan:element,
+                        kode_terminal:id
+                    }).then(e => {
+                        if (e) {
+                            socket.emit('chatIn',{
+                                username:e.penerima,
+                                pesan:e.pesan,
+                                tanggal:e.tgl_entri
+                            });
+                            // chatOut(msg,socket,e,id);
+                        }
+                    });
+                });
             } else {
-                msg.reply('Nomor anda belum terdaftar / Anda Bukan Reseller');
+                msg.reply('Nomor '+number+' belum terdaftar disistem kami.');
             }
         })
-        let dt = msg.body.split('\n');
-        dt.forEach(element => {
-            Inbox.add({
-                penerima:msg.to,
-                pengirim:msg.from,
-                type:'y',
-                pesan:element,
-                kode_terminal:id
-            }).then(e => {
-                if (e) {
-                    socket.emit('chatIn',{
-                        username:e.penerima,
-                        pesan:e.pesan,
-                        tanggal:e.tgl_entri
-                    });
-                    // chatOut(msg,socket,e,id);
-                }
-            });
-        });
     });
 
     client.on('disconnected', (reason) => {

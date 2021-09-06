@@ -2,6 +2,7 @@ const CryptoJS = require("crypto-js");
 const Inbox = require('../controller/inboxController');
 const IMCenter = require('../controller/IMCenterController');
 const xmpp = require('simple-xmpp');
+const pengirim = require('../controller/pengirimController');
 
 const sessions = [];
 function create(socket,data,dataNew) {
@@ -36,25 +37,35 @@ function create(socket,data,dataNew) {
         }
     });
     
-    conn.on('chat', function(from, message) {
-        let dt = message.split('\n');
-        dt.forEach(element => {
-            Inbox.add({
-                penerima:data.username,
-                pengirim:from,
-                service_center:data.username,
-                type:'g',
-                pesan:element,
-                kode_terminal:id
-            }).then(e => {
-                if (e) {
-                    socket.emit('chatIn',{
-                        username:e.penerima,
-                        pesan:e.pesan,
-                        tanggal:e.tgl_entri
+    conn.on('chat', async function(from, message) {
+        var nm = from.split('/')[0];
+        await pengirim.get({
+            pengirim:nm
+        }).then(async e => {
+            if (e.length > 0) {
+                console.log('data ada');
+                let dt = message.split('\n');
+                dt.forEach(element => {
+                    Inbox.add({
+                        penerima:data.username,
+                        pengirim:from,
+                        service_center:data.username,
+                        type:'g',
+                        pesan:element,
+                        kode_terminal:id
+                    }).then(e => {
+                        if (e) {
+                            socket.emit('chatIn',{
+                                username:e.penerima,
+                                pesan:e.pesan,
+                                tanggal:e.tgl_entri
+                            });
+                        }
                     });
-                }
-            });
+                });
+            }else{
+                conn.send(from,'ID '+nm+' belum terdaftar disistem kami.');
+            }
         });
     });
     
