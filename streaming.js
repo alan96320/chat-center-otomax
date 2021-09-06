@@ -1,7 +1,7 @@
 var fs = require('fs');
 const path = require('path');
 const io = require('socket.io-client');
-const socket = io('http://localhost:8000/service');
+const socket = io('http://localhost:9000/service');
 const { Op } = require("sequelize");
 const { IMCenter, inbox, outbox } = require('./models');
 const moment = require('moment');

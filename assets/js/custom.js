@@ -1,6 +1,6 @@
 $(document).ready( async () =>{ 
     $('.code-container').niceScroll();
-    const socket = io("http://localhost:8000/");
+    const socket = io("http://localhost:9000/");
     var log = $('.log-area'),
         dataAccount = null,
         content = $('.content-area'),

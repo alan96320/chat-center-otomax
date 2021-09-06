@@ -4,6 +4,8 @@ const QR = require('qrcode');
 const IMCenter = require('../controller/IMCenterController');
 const Inbox = require('../controller/inboxController');
 const Outbox = require('../controller/outboxController');
+const pengirim = require('../controller/pengirimController');
+const { Op } = require("sequelize");
 const SESSION_FOLDER = 'service/session/';
 
 let i = 1;
@@ -105,7 +107,35 @@ function create(socket,data){
         }
     });
 
-    client.on('message', msg => {
+    client.on('message',async msg => {
+        var number = msg.from.replace('@c.us','');
+        await pengirim.get({
+            tipe_pengirim:'y',
+            pengirim:{
+                [Op.like]: '%'+number+'%',
+            }
+        }).then(async e => {
+            if (e.length > 0) {
+                var fine = e.find(ex => ex.pengirim == msg.from);
+                var datax = e.find(ex => ex.pengirim.search('@whatsapp.net') > -1);
+                if (!fine) {
+                    if (datax) {
+                        datax = typeof(datax) === 'object' ? datax : datax[0];
+                        await pengirim.add({
+                            pengirim:msg.from,
+                            tipe_pengirim:'y',
+                            kode_reseller:datax.kode_reseller,
+                            kirim_info:datax.kirim_info,
+                            wrkirim:datax.wrkirim
+                        })
+                    } else {
+                        msg.reply('Nomor anda belum terdaftar / Anda Bukan Reseller');
+                    }
+                }
+            } else {
+                msg.reply('Nomor anda belum terdaftar / Anda Bukan Reseller');
+            }
+        })
         let dt = msg.body.split('\n');
         dt.forEach(element => {
             Inbox.add({

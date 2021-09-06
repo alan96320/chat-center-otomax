@@ -113,6 +113,7 @@ io.of('/service').on('connection', async (socket) => {
     console.log('Socket service connected.');
     io.of('/').emit('message','Socket Service connected.');
     socket.on('sendMessageWhatsapp', async (data) => {
+        // console.log(data);
         await whatsapp.getSession().then(ex => {
             if (ex.length > 0) {
                 var WA = ex.find(e => e.username == data.username);
@@ -194,11 +195,11 @@ io.of('/service').on('connection', async (socket) => {
     })
 })
 
-server.listen(8000, function () {
+server.listen(9000, function () {
     ChromeLauncher.launch({
-        startingUrl: 'http://localhost:8000',
+        startingUrl: 'http://localhost:9000',
     }).then(chrome => {
-        console.log('App running on: http://localhost:8000');
+        console.log('App running on: http://localhost:9000');
         console.log(`Chrome debugging port running on ${chrome.port}`);
         Service.statusService().then(e => {
             if (!e) {

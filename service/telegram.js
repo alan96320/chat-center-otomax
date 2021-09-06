@@ -3,6 +3,7 @@ const Inbox = require('../controller/inboxController');
 const Outbox = require('../controller/outboxController');
 const TelegramBot = require('node-telegram-bot-api');
 const CryptoJS = require("crypto-js");
+const pengirim = require('../controller/pengirimController');
 var sessions = [];
 
 const create = async (socket,data,createNew) => {
@@ -51,37 +52,90 @@ const create = async (socket,data,createNew) => {
         bot.stopPolling();
     })
 
-    bot.on('message', (msg) => {
-        // console.log(msg);
-        // // \n
-        let dt = msg.text.split('\n');
-        dt.forEach(text => {
-            socket.emit('message', `In from: ${msg.from.id} || to: ${data.username} || message: ${text}`);
-            Inbox.add({
-                penerima: username,
-                pengirim: msg.from.id,
-                type: 'y',
-                pesan: text,
-                kode_terminal:kode_terminal
-            }).then(e => {
-                if (e) {
-                    socket.emit('chatIn',{
-                        username:username,
-                        pesan:text,
-                        tanggal:e.tgl_entri
-                    });
-                    // chatOut(msg,e,bot,socket,terminal);
-                }
+    bot.on('message',async (msg) => {
+        console.log(msg);
+        if (msg.text == 'myid') {
+            bot.sendMessage(msg.chat.id, 'Your ID: '+msg.chat.id,{
+                reply_to_message_id:msg.message_id
             });
-        });
+        }else{
+            await pengirim.get({
+                tipe_pengirim:'y',
+                pengirim:msg.chat.id.toString()
+            }).then(async e => {
+                if (e.length == 0) {
+                    bot.sendMessage(msg.chat.id, 'ID '+msg.chat.id+' belum terdaftar disistem kami.',{
+                        reply_to_message_id:msg.message_id,
+                        reply_markup: {
+                            keyboard: [
+                                [
+                                    {
+                                        text: "Klik untuk validasi Nomor HP!",
+                                        request_contact:true,
+                                    },
+                                ],
+                            ],
+                            resize_keyboard:true,
+                            one_time_keyboard:true,
+                            force_reply:true,
+                        }
+                    }).then(e => {
+                        const replyListenerId = bot.onReplyToMessage(e.chat.id, e.message_id, msg => {
+                            bot.removeReplyListener(replyListenerId);
+                            console.log('dari balasan',msg);
+                            //     templates[count] = msg.text;
+                            // (count == 0) ? inline_keyboard[count][count].text = msg.text:
+                            //     (count == 1) ? inline_keyboard[0][count].text = msg.text:
+                            //         (count == 2) ? inline_keyboard[1][0].text = msg.text:
+                            //             (count == 3) ? inline_keyboard[1][1].text = msg.text:
+                            //                 (count == 4) ? inline_keyboard[1][2].text = msg.text: console.log(inline_keyboard)
+                            //     count++
+                            // if (count>4) count = 0;
+                            // bot.editMessageText('Выберете шаблон',{
+                            //     chat_id: chat.id,
+                            //     message_id:message_id,
+                            //     reply_markup: {
+                            //         inline_keyboard
+                            //     }
+                            // })
+                        })
+                    });
+                }
+            })
+            let dt = msg.text.split('\n');
+            dt.forEach(text => {
+                socket.emit('message', `In from: ${msg.from.id} || to: ${username} || message: ${text}`);
+                Inbox.add({
+                    penerima: username,
+                    pengirim: msg.from.id,
+                    type: 'y',
+                    pesan: text,
+                    kode_terminal:kode_terminal
+                }).then(e => {
+                    if (e) {
+                        socket.emit('chatIn',{
+                            username:username,
+                            pesan:text,
+                            tanggal:e.tgl_entri
+                        });
+                        // chatOut(msg,e,bot,socket,terminal);
+                    }
+                });
+            });
+        }
         
     })
-
-    bot.onText(/myid/, (msg, match) => {
-        bot.getMe().then(e => {
-            bot.sendMessage(msg.chat.id, 'Your ID: '+e.id);
+    bot.on('callback_query',query=>{
+        const {message: {chat, message_id, text}= {}} = query;
+        switch (query.data) {
+            case COMMAND_TEMPLATE1:
+                bot.sendMessage(chat.id, 'Необходимо ввести текст шаблона №1');
+            break
+        }
+        bot.answerCallbackQuery({
+            callback_query_id: query.id
         })
-    });
+    })
 }
 
 const abort = async (username) => {
