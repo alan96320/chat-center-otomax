@@ -37,21 +37,24 @@ function create(socket,data,dataNew) {
     });
     
     conn.on('chat', function(from, message) {
-        Inbox.add({
-            penerima:data.username,
-            pengirim:from,
-            service_center:data.username,
-            type:'g',
-            pesan:message,
-            kode_terminal:id
-        }).then(e => {
-            if (e) {
-                socket.emit('chatIn',{
-                    username:e.penerima,
-                    pesan:e.pesan,
-                    tanggal:e.tgl_entri
-                });
-            }
+        let dt = message.split('\n');
+        dt.forEach(element => {
+            Inbox.add({
+                penerima:data.username,
+                pengirim:from,
+                service_center:data.username,
+                type:'g',
+                pesan:element,
+                kode_terminal:id
+            }).then(e => {
+                if (e) {
+                    socket.emit('chatIn',{
+                        username:e.penerima,
+                        pesan:e.pesan,
+                        tanggal:e.tgl_entri
+                    });
+                }
+            });
         });
     });
     

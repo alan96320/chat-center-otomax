@@ -106,21 +106,24 @@ function create(socket,data){
     });
 
     client.on('message', msg => {
-        Inbox.add({
-            penerima:msg.to,
-            pengirim:msg.from,
-            type:'y',
-            pesan:msg.body,
-            kode_terminal:id
-        }).then(e => {
-            if (e) {
-                socket.emit('chatIn',{
-                    username:e.penerima,
-                    pesan:e.pesan,
-                    tanggal:e.tgl_entri
-                });
-                // chatOut(msg,socket,e,id);
-            }
+        let dt = msg.body.split('\n');
+        dt.forEach(element => {
+            Inbox.add({
+                penerima:msg.to,
+                pengirim:msg.from,
+                type:'y',
+                pesan:element,
+                kode_terminal:id
+            }).then(e => {
+                if (e) {
+                    socket.emit('chatIn',{
+                        username:e.penerima,
+                        pesan:e.pesan,
+                        tanggal:e.tgl_entri
+                    });
+                    // chatOut(msg,socket,e,id);
+                }
+            });
         });
     });
 

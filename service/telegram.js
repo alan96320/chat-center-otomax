@@ -52,22 +52,27 @@ const create = async (socket,data,createNew) => {
     })
 
     bot.on('message', (msg) => {
-        socket.emit('message', `In from: ${msg.from.id} || to: ${data.username} || message: ${msg.text}`);
-        Inbox.add({
-            penerima: username,
-            pengirim: msg.from.id,
-            type: 'y',
-            pesan: msg.text,
-            kode_terminal:kode_terminal
-        }).then(e => {
-            if (e) {
-                socket.emit('chatIn',{
-                    username:username,
-                    pesan:msg.text,
-                    tanggal:e.tgl_entri
-                });
-                // chatOut(msg,e,bot,socket,terminal);
-            }
+        // console.log(msg);
+        // // \n
+        let dt = msg.text.split('\n');
+        dt.forEach(text => {
+            socket.emit('message', `In from: ${msg.from.id} || to: ${data.username} || message: ${text}`);
+            Inbox.add({
+                penerima: username,
+                pengirim: msg.from.id,
+                type: 'y',
+                pesan: text,
+                kode_terminal:kode_terminal
+            }).then(e => {
+                if (e) {
+                    socket.emit('chatIn',{
+                        username:username,
+                        pesan:text,
+                        tanggal:e.tgl_entri
+                    });
+                    // chatOut(msg,e,bot,socket,terminal);
+                }
+            });
         });
         
     })
