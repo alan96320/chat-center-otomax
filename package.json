@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "start-dev": "nodemon index.js"
+    "start-dev": "nodemon index.js",
+    "install-service": "node install.js",
+    "unistall-service": "node uninstall.js"
   },
   "repository": {
     "type": "git",
