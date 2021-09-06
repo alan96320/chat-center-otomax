@@ -28,9 +28,6 @@ setInterval(async() => {
                 },
             }]
         });
-        // data = data.map(e => {
-        //     return e.penerima;
-        // })
         if (data.length > 0) {
             data.forEach(element => {
                 if (element.IMCenter) {
