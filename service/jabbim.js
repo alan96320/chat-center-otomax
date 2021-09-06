@@ -1,9 +1,14 @@
 const CryptoJS = require("crypto-js");
 const Inbox = require('../controller/inboxController');
-const Outbox = require('../controller/outboxController');
-function create(socket,data,conn) {
-    var password = CryptoJS.AES.decrypt(data.password, data.label).toString(CryptoJS.enc.Utf8);
+const IMCenter = require('../controller/IMCenterController');
+const xmpp = require('simple-xmpp');
+
+const sessions = [];
+function create(socket,data,dataNew) {
+    var conn = new xmpp.SimpleXMPP();
+    var password = CryptoJS.AES.decrypt(data.password, data.username).toString(CryptoJS.enc.Utf8);
     var host = data.username.split('@')[1];
+    var id = data.id;
     conn.connect({
         "jid": data.username,
         "password": password,
@@ -14,10 +19,21 @@ function create(socket,data,conn) {
     conn.on('online', function(e) {
         console.log('Jabbim ready: '+e.jid.user);
         socket.emit('message', 'Connected with JID: ' + e.jid.user);
-        socket.emit('resJabbimConn',{
+        var username = e.jid.user+'@'+e.jid._domain;
+        socket.emit('jabbimConnect',{
             status: true,
-            username:e.jid.user+'@'+e.jid._domain
+            username:username
         });
+        IMCenter.updateOne({id:id},{
+            status_text:'Online'
+        });
+        sessions.push({
+            username: username,
+            client: conn
+        });
+        if (dataNew) {
+            socket.emit('resAddJabbim',true);
+        }
     });
     
     conn.on('chat', function(from, message) {
@@ -26,7 +42,8 @@ function create(socket,data,conn) {
             pengirim:from,
             service_center:data.username,
             type:'g',
-            pesan:message
+            pesan:message,
+            kode_terminal:id
         }).then(e => {
             if (e) {
                 socket.emit('chatIn',{
@@ -34,7 +51,6 @@ function create(socket,data,conn) {
                     pesan:e.pesan,
                     tanggal:e.tgl_entri
                 });
-                chatOutJabbim(conn,socket,e,data.id);
             }
         });
     });
@@ -42,9 +58,12 @@ function create(socket,data,conn) {
     conn.on('error', function(err) {
         socket.emit('message', 'Error Connected with JID: ' + data.username);
         socket.emit('message', err);
-        socket.emit('resJabbimConn',{
+        socket.emit('jabbimConnect',{
             status: false,
             username:data.username
+        });
+        IMCenter.updateOne({id:id},{
+            status_text:'Offline'
         });
         console.error(err);
     });
@@ -61,91 +80,57 @@ function create(socket,data,conn) {
             status: false,
             username:data.username
         });
+        IMCenter.updateOne({id:id},{
+            status_text:'Offline'
+        });
         console.log('connection has been closed!');
     });
     
     conn.getRoster();
 }
 
-function logout(socket,conn,user) {
-    if (conn.conn.options.jid.user == user) {
-        socket.emit('message', 'Disconnected with JID: ' + user);
-        conn.disconnect();
+async function logout(socket,username) {
+    var index = sessions.findIndex(e => e.username == username);
+    if (index > -1) {
+        var dt = sessions[index];
+        console.log('Disconnected with JID: ' + username);
+        socket.emit('message', 'Disconnected with JID: ' + username);
+        dt.client.disconnect();
+        sessions.splice(index,1);
     }
 }
-let i = 1;
-function chatOutJabbim(conn,socket,data,terminal) {
-    console.log('percobaan ke- '+i);
-    Outbox.getOne(data).then(async e => {
-        if (e) {
-            socket.emit('chatOut',{
-                username:data.penerima,
-                pesan:e.pesan,
-                tanggal:e.tgl_entri
-            });
-            socket.emit('message', 'Out from: ' + data.penerima + ' || to: ' + data.pengirim + ' || message: '+e.pesan);
-            conn.send(data.pengirim,e.pesan); // balasan ke jabbim
-            await Inbox.update(e); // update inbox
-            await Outbox.update(e,data.penerima,terminal); // update outbox
-            i = 1;
-            if (e.kode_transaksi != null) {
-                chatOutTranction({
-                    kode_transaksi:e.kode_transaksi,
-                    penerima:data.penerima,
-                    pengirim:data.pengirim,
-                    conn:conn,
-                    socket:socket,
-                    terminal:terminal
-                });
-            }
-        }else{
-            if (i <= 120) {
-                setTimeout(() => {
-                    chatOutJabbim(conn,socket,data,terminal);
-                    i++;
-                }, 500);
-            }else{
-                i = 1;
-                console.log('percobaan melebihi batas');
-            }
-        }
-    })
+
+const getSession = async () => {
+    return sessions;
 }
 
-const chatOutTranction = (data) => {
-    console.log('Get Trasaction- '+i);
-    Outbox.getOneGlobal({
-        kode_inbox:null,
-        kode_transaksi:data.kode_transaksi
+const init = async (socket) => {
+    socket.emit('message', 'Sedang mempersiapkan jabbim...');
+    await IMCenter.getAll({
+        sender_speed:20,
+        type:3
     }).then((e) => {
-        if (e) {
-            // kirimkan ke brouser
-            data.socket.emit('chatOut',{
-                username:data.penerima,
-                pesan:e.pesan,
-                tanggal:e.tgl_entri
-            });
+        socket.emit('message','Jabbim ready');
+        e.forEach(element => {
+            console.log('Create new session jabbim',element.username);
+            create(socket,element,false);
+        });
+    })
 
-            // kirimkan ke provider
-            data.conn.send(data.pengirim,e.pesan);
+    socket.on('addJabbim',(data) => {
+        console.log('Create new jabbim.',data.username);
+        IMCenter.add(data).then(e => {
+            create(socket,e,true);
+        })
+    })
 
-            // update ke database
-            Outbox.update(e,data.penerima,data.terminal);
-
-            // reset number
-            i = 1;
-        }else{
-            if (i <= 120) {
-                setTimeout(() => {
-                    chatOutTranction(data);
-                    i++;
-                }, 500);
-            }else{
-                i = 1;
-                console.log('melebihi batas permintaan');
-            }
-        }
+    socket.on('updateJabbim', (data) => {
+        IMCenter.update(data).then(async e => {
+            await logout(socket,e.username);
+            create(socket,e,false);
+            socket.emit('resUpdatejabbim',true);
+        })
     })
 }
 
-module.exports = {create,logout};
+module.exports = {getSession,init,logout};

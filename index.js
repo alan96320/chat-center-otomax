@@ -33,7 +33,9 @@ app.get('/service',(req,res) => {
 
 io.on('connection', async (socket) => {
     socket.emit('message', 'Socket is ready...');
-    whatsapp.init(io);
+    whatsapp.init(socket);
+    jabbim.init(socket);
+    telegram.init(socket);
     
     // untuk mengambil data
     socket.on('getData',(status) => {
@@ -50,8 +52,8 @@ io.on('connection', async (socket) => {
 
     // untuk mengambil chatting
     socket.on('getChat', async (data) => {
-        Inbox.getAll({
-            kode_terminal:data.id
+        IMCenter.getOne({
+            id:data.id
         }).then(e => {
             socket.emit('resGetChat', {
                 username: data.username,
@@ -59,80 +61,10 @@ io.on('connection', async (socket) => {
             });
         })
     })
-
-
-    // untuk whatsapp
-    socket.emit('message', 'Sedang mempersiapkan whatsapp...');
-
-    // untuk jabbim
-    socket.emit('message', 'Sedang mempersiapkan jabbim...');
-
-    socket.on('jabbimConn', async (data) => {
-        socket.emit('message', 'Connecting with: ' + data.username);
-        var conn = new xmpp.SimpleXMPP();
-        await new jabbim.create(socket, data, conn);
-        socket.on('logoutJabbim', function (e) {
-            jabbim.logout(socket, conn, e);
-        });
-    })
     
-    
-
-    // untuk telegram
-    // 1995723271:AAHd-ecl6DVPpCDb5M_S9Bz_ukY6VfaUbds
-    // 1966888472:AAGF_YjTR5mqIsD8VmVHiy89KXEk95Z_BdY
-    socket.emit('message', 'Sedang mempersiapkan telegram...');
-    
-
-    socket.on('AccountAdd', async (data) => {
-        if (data.type == 'telegram') {
-            await telegram.authenticated(data.token).then(e => {
-                if (e.status) {
-                    data.username = e.username;
-                } else {
-                    socket.emit('errorAuthTelegram', 'Token is not found..');
-                }
-            });
-        }
-        IMCenter.add(data).then(e => {
-            if (data.type == 'telegram') {
-                telegram.MyBot(data.token, socket, e.username, e.id);
-            }
-            socket.emit('resAccountAdd', e);
-        });
-    });
-
-    socket.on('AccountUpdate', async (data) => {
-        if (data.type == 'telegram') {
-            data.password = null;
-            if (data.token != '') {
-                await telegram.authenticated(data.token).then(e => {
-                    if (e.status) {
-                        data.username = e.username;
-                        data.password = data.token;
-                    } else {
-                        socket.emit('errorAuthTelegram', 'Token is not found..');
-                    }
-                });
-            }
-
-
-        }
-        IMCenter.update(data).then(e => {
-            if (data.type == 'telegram') {
-                console.log(e.username);
-                if (data.password != null) {
-                    var token = CryptoJS.AES.decrypt(e.password, e.username).toString(CryptoJS.enc.Utf8);
-                    telegram.MyBot(token, socket, e.username);
-                }
-            }
-            socket.emit('resAccountUpdate', e);
-        })
-    })
-
     socket.on('deleteAccount', async (data) => {
         await IMCenter.deleted({
-            username: data.username
+            id:data.id
         }).then(async e => {
             await Inbox.deleted({
                 penerima: data.username
@@ -144,6 +76,15 @@ io.on('connection', async (socket) => {
                         username: data.username,
                         type: data.type
                     })
+                    if (data.type == 'whatsapp') {
+                        whatsapp.abort(data.username);
+                    }
+                    if (data.type == 'telegram') {
+                        telegram.abort(data.username);
+                    }
+                    if (data.type == 'jabbim') {
+                        jabbim.logout(socket,data.username);
+                    }
                 })
             })
         })
@@ -179,6 +120,11 @@ io.of('/service').on('connection', async (socket) => {
                 var penerima = data.penerima.replace('whatsapp.net','c.us');
                 client.sendMessage(penerima, data.pesan).then(async response => {
                     console.log('sukses mengirimkan pesan ke',penerima);
+                    io.of('/').emit('chatOut',{
+                        username:data.username,
+                        pesan:data.pesan,
+                        tanggal:data.tgl
+                    });
                     await Outbox.update({
                         kode: data.idOutbox,
                         kode_inbox: data.idinbox,
@@ -195,6 +141,56 @@ io.of('/service').on('connection', async (socket) => {
                 });
             }
         })
+    })
+    socket.on('sendMessageJabbim', async (data) => {
+        await jabbim.getSession().then(async (ex) => {
+            if (ex.length > 0) {
+                var jb = ex.find(e => e.username == data.username);
+                var client = jb.client;
+                client.send(data.penerima,data.pesan);
+                io.of('/').emit('chatOut',{
+                    username:data.username,
+                    pesan:data.pesan,
+                    tanggal:data.tgl
+                });
+                await Outbox.update({
+                    kode: data.idOutbox,
+                    kode_inbox: data.idinbox,
+                    terminal: data.idImcenter,
+                    pengirim: data.username
+                });
+                if (data.idinbox != null) {
+                    await Inbox.update({
+                        kode_inbox: data.idinbox
+                    })
+                }
+            }
+        });
+    })
+    socket.on('sendMessageTelegram', async (data) => {
+        await telegram.getSession().then(async (ex) => {
+            if (ex.length > 0) {
+                var tele = ex.find(e => e.username == data.username);
+                var client = tele.client;
+                client.sendMessage(data.penerima, data.pesan);
+                io.of('/').emit('chatOut',{
+                    username:data.username,
+                    pesan:data.pesan,
+                    tanggal:data.tgl
+                });
+                await Outbox.update({
+                    kode: data.idOutbox,
+                    kode_inbox: data.idinbox,
+                    terminal: data.idImcenter,
+                    pengirim: data.username
+                });
+                if (data.idinbox != null) {
+                    await Inbox.update({
+                        kode_inbox: data.idinbox
+                    })
+                }
+            }
+        });
     })
 })
 

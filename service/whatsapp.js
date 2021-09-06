@@ -6,12 +6,10 @@ const Inbox = require('../controller/inboxController');
 const Outbox = require('../controller/outboxController');
 const SESSION_FOLDER = 'service/session/';
 
-var socket = null;
-
 let i = 1;
 const sessions = [];
 
-function create(data){
+function create(socket,data){
     let sessionCfg;
     let info;
     var id = data.id;
@@ -62,7 +60,7 @@ function create(data){
         sessionCfg=session;
     });
 
-    client.on('ready', () => {
+    client.on('ready', async() => {
         info = client.info;
         if (info) {
             if (info.me != undefined) {
@@ -76,14 +74,13 @@ function create(data){
                 // ini jika pengguna baru
                 if (!fs.existsSync(`${SESSION_FOLDER}whatsapp-session-${info.me._serialized}.json`)) {
                     // tambahkan data ke database
-                    IMCenter.add({
+                    await IMCenter.add({
                         type: 'whatsapp',
                         username: info.me._serialized,
                         label: info.me.user,
                         startup: 'on'
                     }).then(e => {
-                        console.log(e);
-                        user = e.id;
+                        id = e.id;
                         socket.emit('resAddwhatsapp',e);
                     });
                 }
@@ -100,6 +97,10 @@ function create(data){
                         client: client
                     });
                 }
+
+                IMCenter.updateOne({id:id},{
+                    status_text:'Online'
+                });
             }
         }
     });
@@ -124,20 +125,31 @@ function create(data){
     });
 
     client.on('disconnected', (reason) => {
+        console.log(reason);
         socket.emit('message', 'Whatsapp is disconnected!');
-
-        // untuk menghapus file session json
-        fs.unlinkSync(`${SESSION_FOLDER}whatsapp-session-${info.me._serialized}.json`, function(err) {
-            if(err) return console.log(err);
+        if (reason == 'NAVIGATION') {
+            // untuk menghapus file session json
+            fs.unlinkSync(`${SESSION_FOLDER}whatsapp-session-${info.me._serialized}.json`, function(err) {
+                if(err) return console.log(err);
+            });
+    
+            // hapus data dari database
+            IMCenter.deleted({
+                username:info.me._serialized
+            }).then(e => {
+                console.log(`Data Whatsapp ${info.me._serialized} is deleted`);
+            })
+            socket.emit('disconedWhatsapp',{
+                destroy:true,
+                username:info.me._serialized
+            })
+        }
+        IMCenter.updateOne({id:id},{
+            status_text:'Offline'
         });
 
-        // hapus data dari database
-        IMCenter.deleted({
-            username:info.me._serialized
-        }).then(e => {
-            console.log(`Data Whatsapp ${info.me._serialized} is deleted`);
-        })
         socket.emit('disconedWhatsapp',{
+            destroy:false,
             username:info.me._serialized
         })
         client.destroy();
@@ -146,101 +158,39 @@ function create(data){
     client.initialize();
 }
 
-let ii = 1;
-function chatOut(msg,socket,data,terminal) {
-    console.log('percobaan ke- '+ii);
-    Outbox.getOne(data).then(e => {
-        if (e) {
-            socket.emit('chatOut',{
-                username:data.penerima,
-                pesan:e.pesan,
-                tanggal:e.tgl_entri
-            });
-            socket.emit('message', 'Out from: ' + data.penerima + ' || to: ' + data.pengirim + ' || message: '+e.pesan);
-            msg.reply(e.pesan);
-            Inbox.update(e);
-            Outbox.update(e,data.penerima,terminal);
-            ii = 1;
-            if (e.kode_transaksi != null) {
-                chatOutTranction({
-                    kode_transaksi:e.kode_transaksi,
-                    penerima:data.penerima,
-                    msg:msg,
-                    socket:socket,
-                    terminal:terminal
-                });
-            }
-        }else{
-            if (ii <= 120) {
-                setTimeout(() => {
-                    chatOut(msg,socket,data,terminal);
-                    ii++;
-                }, 500);
-            }else{
-                ii = 1;
-                console.log('percobaan melebihi batas');
-            }
-        }
-    })
-}
-
-const chatOutTranction = (data) => {
-    console.log('Get Trasaction- '+ii);
-    Outbox.getOneGlobal({
-        kode_inbox:null,
-        kode_transaksi:data.kode_transaksi
-    }).then((e) => {
-        if (e) {
-            // kirimkan ke brouser
-            data.socket.emit('chatOut',{
-                username:data.penerima,
-                pesan:e.pesan,
-                tanggal:e.tgl_entri
-            });
-
-            // kirimkan ke provider
-            data.msg.reply(e.pesan);
-
-            // update ke database
-            Outbox.update(e,data.penerima,data.terminal);
-
-            // reset number
-            ii = 1;
-        }else{
-            if (ii <= 120) {
-                setTimeout(() => {
-                    chatOutTranction(data);
-                    ii++;
-                }, 500);
-            }else{
-                ii = 1;
-                console.log('melebihi batas permintaan');
-            }
-        }
-    })
-}
-
 const getSession = async () => {
     return sessions;
 }
 
-const init = async (io) => {
-    socket = io.of('/');
+const abort = async (username) => {
+    var i = sessions.findIndex(e => e.username == username);
+    if (i > -1) {
+        var client = sessions[i].client;
+        client.destroy();
+        sessions.splice(i,1);
+    }
+    fs.unlinkSync(`${SESSION_FOLDER}whatsapp-session-${username}.json`, function(err) {
+        if(err) return console.log(err);
+    });
+}
+
+const init = async (socket) => {
+    socket.emit('message', 'Sedang mempersiapkan whatsapp...');
 
     await IMCenter.getAll({
         sender_speed:20,
         type:5
     }).then((e) => {
         socket.emit('message','Whatsapp ready');
-        console.log('Lagi looping data whatsapp');
         e.forEach(element => {
-            create(element);
+            console.log('Create new session whatsapp',element.username);
+            create(socket,element);
         });
     })
 
     socket.on('addWhatsapp',(data) => {
         console.log('Create new whatsapp.');
-        create(data);
+        create(socket,data);
     })
     
     socket.on('cancelScan', (status) => {
@@ -249,20 +199,14 @@ const init = async (io) => {
             console.log('Scan QR canceled..');
         }
     })
+
+    socket.on('updateWhatsapp',(data) => {
+        IMCenter.update(data).then(async e => {
+            create(socket,e,false);
+            socket.emit('resUpdateWhatsapp',true);
+        })
+    })
     
-    socket.on('sendMessageWhatsapp', (data) => {
-        console.log('diterima oleh whatsapp',data);
-        // const number = data.username;
-        // const message = data.pesan;
-      
-        // const client = sessions.find(sess => sess.username == username).client;
-      
-        // client.sendMessage(number, message).then(response => {
-        //   console.log(`Mengirimkan pesan ke ${number} berhasil`);
-        // }).catch(err => {
-        //     console.log(`Mengirimkan pesan ke ${number} gagal`,err);
-        // });
-    });
 }
 
-module.exports = {create,init,getSession};
+module.exports = {create,init,getSession,abort};

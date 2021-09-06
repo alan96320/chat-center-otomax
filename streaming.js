@@ -31,7 +31,6 @@ setInterval(async() => {
         // data = data.map(e => {
         //     return e.penerima;
         // })
-        // console.log(data);
         if (data.length > 0) {
             data.forEach(element => {
                 if (element.IMCenter) {
@@ -43,7 +42,32 @@ setInterval(async() => {
                             idOutbox:element.kode,
                             idImcenter:element.IMCenter.id,
                             penerima:element.penerima,
-                            idinbox:element.kode_inbox
+                            idinbox:element.kode_inbox,
+                            tgl:element.tgl_entri
+                        })
+                    }
+                    if (element.IMCenter.type == 3) {
+                        console.log('lagi megirimkan ke jabbim');
+                        socket.emit('sendMessageJabbim',{
+                            username:element.IMCenter.username,
+                            pesan:element.pesan,
+                            idOutbox:element.kode,
+                            idImcenter:element.IMCenter.id,
+                            penerima:element.penerima,
+                            idinbox:element.kode_inbox,
+                            tgl:element.tgl_entri
+                        })
+                    }
+                    if (element.IMCenter.type == 4) {
+                        console.log('lagi megirimkan ke telegram');
+                        socket.emit('sendMessageTelegram',{
+                            username:element.IMCenter.username,
+                            pesan:element.pesan,
+                            idOutbox:element.kode,
+                            idImcenter:element.IMCenter.id,
+                            penerima:element.penerima,
+                            idinbox:element.kode_inbox,
+                            tgl:element.tgl_entri
                         })
                     }
                 }

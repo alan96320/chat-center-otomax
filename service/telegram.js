@@ -1,160 +1,118 @@
+const IMCenter = require('../controller/IMCenterController');
 const Inbox = require('../controller/inboxController');
 const Outbox = require('../controller/outboxController');
 const TelegramBot = require('node-telegram-bot-api');
-var sessionBot = [];
+const CryptoJS = require("crypto-js");
+var sessions = [];
 
-const authenticated = async (token) => {
-    var res = null;
-    var session = sessionBot.find(e => e.token == token);
-    var bot;
-    if (session == undefined) {
-        bot = new TelegramBot(token);
-    }else{
-        bot = session.bot;
-    }
+const create = async (socket,data,createNew) => {
+    var token = createNew ? data.token : CryptoJS.AES.decrypt(data.password, data.username).toString(CryptoJS.enc.Utf8),
+        username = null,
+        kode_terminal = createNew ? null : data.id;
+    
+    const bot = new TelegramBot(token,{polling: true});
+
     await bot.getMe().then(async (me) => {
-        me.status = true;
-        res = me;
-    }).catch(async (err) => {
-        console.log('error auth', err.response.body);
-        res = {
-            status: false,
-            error: err.response.body
-        };
+        console.log('Telegram Ready:',me.username);
+        socket.emit('message', `Bot ${me.username} is connected...`);
+        socket.emit('TelegramReady',{
+            username: me.username,
+        });
+        sessions.push({
+            username: me.username,
+            client: bot
+        })
+        username = me.username;
+        if (createNew) {
+            await IMCenter.add({
+                label: data.label,
+                token: data.token,
+                username: me.username,
+                startup: data.startup,
+                type:'telegram'
+            }).then(e => {
+                kode_terminal=e.id;
+                socket.emit('resAddTelegram',true);
+            })
+        }else{
+            IMCenter.updateOne({id:kode_terminal},{
+                status_text:'Online'
+            });
+        }
+    }).catch(err => {
+        console.log(err.code);
+        if (!createNew) {
+            socket.emit('message','Telegram Bot Token not provided!');
+            IMCenter.updateOne({id:kode_terminal},{
+                status_text:'Offline'
+            });
+        }
+        socket.emit('resUpdateTelegram',false);
+        bot.stopPolling();
     })
-    return res;
+
+    bot.on('message', (msg) => {
+        socket.emit('message', `In from: ${msg.from.id} || to: ${data.username} || message: ${msg.text}`);
+        Inbox.add({
+            penerima: username,
+            pengirim: msg.from.id,
+            type: 'y',
+            pesan: msg.text,
+            kode_terminal:kode_terminal
+        }).then(e => {
+            if (e) {
+                socket.emit('chatIn',{
+                    username:username,
+                    pesan:msg.text,
+                    tanggal:e.tgl_entri
+                });
+                // chatOut(msg,e,bot,socket,terminal);
+            }
+        });
+        
+    })
 }
 
-
-const MyBot = async (token, socket, username, terminal) => {
-    var session = sessionBot.find(e => e.token == token);
-    if (session == undefined) {
-        const bot = new TelegramBot(token,{polling: true});
-        await bot.getMe().then(async (me) => {
-            console.log('Telegram Ready:',me.username);
-            socket.emit('message', `Bot ${me.username} is connected...`);
-            socket.emit('TelegramReady',{
-                username: me.username,
-            });
-            sessionBot.push({
-                token:token,
-                bot:bot
-            })
-        }).catch(async (err) => {
-            console.log('error auth', err);
-        })
-
-        bot.on('message', (msg) => {
-            console.log(msg);
-            socket.emit('message', `In from: ${msg.from.id} || to: ${username} || message: ${msg.text}`);
-            Inbox.add({
-                penerima: username,
-                pengirim: msg.from.id,
-                type: 'y',
-                pesan: msg.text
-            }).then(e => {
-                if (e) {
-                    console.log(e.tgl_entri);
-                    socket.emit('chatIn',{
-                        username:username,
-                        pesan:msg.text,
-                        tanggal:e.tgl_entri
-                    });
-                    chatOut(msg,e,bot,socket,terminal);
-                }
-            });
-            
-        })
-    }else{
-        const bot = session.bot;
-        await bot.getMe().then(async (me) => {
-            socket.emit('message', `Bot ${me.username} is connected...`);
-            socket.emit('TelegramReady',{
-                username: me.username,
-            });
-        }).catch(async (err) => {
-            console.log('error auth', err.response.body);
-        })
+const abort = async (username) => {
+    var x = sessions.findIndex(e => e.username == username);
+    if (x > -1) {
+        var dt = sessions[index];
+        dt.client.stopPolling();
+        dt.client._polling.abort = true;
     }
 }
 
-let i = 1;
-const chatOut = (msg,data,bot,socket,terminal) => {
-    console.log('percobaan ke- '+i);
-    Outbox.getOne(data).then(e => {
-        if (e) {
-            socket.emit('chatOut',{
-                username:data.penerima,
-                pesan:e.pesan,
-                tanggal:e.tgl_entri
-            });
-            socket.emit('message', `Out from: ${e.penerima} || to: ${data.pengirim} || message: ${e.pesan}`);
-            bot.sendMessage(msg.chat.id, e.pesan,{
-                reply_to_message_id:msg.message_id
-            });
-            Inbox.update(e);
-            Outbox.update(e,data.penerima,terminal);
-            i = 1;
-            if (e.kode_transaksi != null) {
-                chatOutTranction({
-                    kode_transaksi:e.kode_transaksi,
-                    penerima:data.penerima,
-                    bot:bot,
-                    msg:msg,
-                    socket:socket,
-                    terminal:terminal
-                });
-            }
-        }else{
-            if (i <= 120) {
-                setTimeout(() => {
-                    chatOut(msg,data,bot,socket,terminal);
-                    i++;
-                }, 500);
-            }else{
-                i = 1;
-                console.log('percobaan melebihi batas');
-            }
-        }
-    })
+const getSession = async () => {
+    return sessions;
 }
 
-const chatOutTranction = (data) => {
-    console.log('Get Trasaction- '+i);
-    Outbox.getOneGlobal({
-        kode_inbox:null,
-        kode_transaksi:data.kode_transaksi
+const init = async (socket) => {
+    socket.emit('message', 'Sedang mempersiapkan telegram...');
+
+    await IMCenter.getAll({
+        sender_speed:20,
+        type:4
     }).then((e) => {
-        if (e) {
-            // kirimkan ke brouser
-            data.socket.emit('chatOut',{
-                username:data.penerima,
-                pesan:e.pesan,
-                tanggal:e.tgl_entri
-            });
+        socket.emit('message','Telegram ready');
+        e.forEach(element => {
+            console.log('Create new session telegram',element.username);
+            create(socket,element,false);
+        });
+    })
 
-            // kirimkan ke provider
-            data.bot.sendMessage(data.msg.chat.id, e.pesan,{
-                reply_to_message_id:data.msg.message_id
-            });
+    socket.on('addTelegram',(data) => {
+        console.log('Create new telegram.');
+        create(socket,data,true);
+    })
 
-            // update ke database
-            Outbox.update(e,data.penerima,data.terminal);
-
-            // reset number
-            i = 1;
-        }else{
-            if (i <= 120) {
-                setTimeout(() => {
-                    chatOutTranction(data);
-                    i++;
-                }, 500);
-            }else{
-                i = 1;
-                console.log('melebihi batas permintaan');
-            }
-        }
+    socket.on('updateTelegram',(data) => {
+        console.log(data);
+        IMCenter.update(data).then(async e => {
+            await abort(data.username);
+            create(socket,e,false);
+            socket.emit('resUpdateTelegram',true);
+        })
     })
 }
 
-module.exports = { MyBot,authenticated }
+module.exports = { getSession, init, abort }
