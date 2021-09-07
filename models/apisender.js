@@ -20,8 +20,8 @@ module.exports = (sequelize, DataTypes) => {
     pesan: DataTypes.STRING,
     type: DataTypes.STRING,
     price: DataTypes.INTEGER,
-    saldoAwal: DataTypes.INTEGER,
-    saldoAkhir: DataTypes.INTEGER
+    saldoAwal: DataTypes.FLOAT,
+    saldoAkhir: DataTypes.FLOAT
   }, {
     sequelize,
     modelName: 'APISender',

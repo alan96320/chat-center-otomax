@@ -113,7 +113,7 @@ app.post('/apiSender',async (req,res) => {
                                 })
                                 // update price
                                 await reseller.update({
-                                    saldo:dt.saldo-process.env.PRICE_API_SENDER
+                                    saldo:parseFloat(dt.saldo-process.env.PRICE_API_SENDER)
                                 },{
                                     where:{
                                         kode:req.body.userId
@@ -126,8 +126,8 @@ app.post('/apiSender',async (req,res) => {
                                     pesan: req.body.pesan,
                                     type:req.body.type,
                                     price: process.env.PRICE_API_SENDER,
-                                    saldoAwal: dt.saldo,
-                                    saldoAkhir: dt.saldo-process.env.PRICE_API_SENDER
+                                    saldoAwal: parseFloat(dt.saldo),
+                                    saldoAkhir: parseFloat(dt.saldo-process.env.PRICE_API_SENDER)
                                 })
                                 var jml = await APISender.findAll({
                                     where:{
