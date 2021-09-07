@@ -8,7 +8,7 @@ const moment = require('moment');
 
 setInterval(async() => {
     try {
-        var today = moment(new Date().toUTCString()).format();
+        var today = moment(new Date().toUTCString()).format('YYYY-MM-DD');
         var data = await outbox.findAll({ 
             where:{
                 tipe_penerima:{
@@ -68,6 +68,34 @@ setInterval(async() => {
                         })
                     }
                 }
+            });
+        }
+
+        // untuk otp atau untuk yg kode terminalnnya tidak terisi
+        var datax = await outbox.findAll({ 
+            where:{
+                tipe_penerima:{
+                    [Op.in]: ['y', 'Y', 'w', 'W']
+                },
+                ex_kirim:{
+                    [Op.is]: null,
+                },
+                tgl_entri:{
+                    [Op.gt]: today
+                },
+            },
+        });
+        if (datax.length > 0) {
+            datax = datax.filter(e =>{
+                return e.penerima.includes("@whatsapp") || e.penerima.includes('@c.us') || e.tipe_penerima == 'w' || e.tipe_penerima == 'W';
+            });
+            console.log('data otp sekarang',datax.length);
+            datax.forEach(element => {
+                socket.emit('sendMessageOTP',{
+                    pesan:element.pesan,
+                    penerima:element.penerima,
+                    idOutbox:element.kode,
+                })
             });
         }
     } catch (err) {

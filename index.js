@@ -266,7 +266,7 @@ io.of('/service').on('connection', async (socket) => {
     console.log('Socket service connected.');
     io.of('/').emit('message','Socket Service connected.');
     socket.on('sendMessageWhatsapp', async (data) => {
-        // console.log(data);
+        console.log(data.length);
         await whatsapp.getSession().then(ex => {
             if (ex.length > 0) {
                 var WA = ex.find(e => e.username == data.username);
@@ -345,6 +345,27 @@ io.of('/service').on('connection', async (socket) => {
                 }
             }
         });
+    })
+
+    socket.on('sendMessageOTP', async (data) => {
+        var center = await whatsapp.getSession();
+        const random = Math.floor(Math.random() * center.length);
+        var number = data.penerima.replace('@whatsapp.net','')+'@c.us';
+        if (center.length > 0) {
+            center=center[random];
+            var client = center.client;
+            client.sendMessage(number, data.pesan).then(async response => {
+                console.log('sukses mengirimkan pesan ke',number);
+                await Outbox.update({
+                    kode: data.idOutbox,
+                    kode_inbox: data.idinbox,
+                    pengirim: center.username,
+                    terminal:null
+                });
+            }).catch(err => {
+                console.log(`Mengirimkan pesan ke ${number} gagal`,err);
+            });
+        }
     })
 })
 
