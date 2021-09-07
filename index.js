@@ -99,51 +99,65 @@ app.post('/apiSender',async (req,res) => {
                         client = client[random];
                         var center = client.client;
                         if (req.body.type == 'wa' || req.body.type == 'tele') {
-                            await center.sendMessage(number, req.body.pesan).then(async (e) =>{
-                                status =true;
-                                // masukan ke database
-                                await Outbox.insert({
-                                    penerima: number,
-                                    tipe_penerima: 'y',
-                                    pesan: req.body.pesan,
-                                    status: 20,
-                                    kode_reseller: req.body.userId,
-                                    pengirim: client.username,
-                                    ex_kirim:1,
-                                })
-                                // update price
-                                await reseller.update({
-                                    saldo:parseFloat(dt.saldo-process.env.PRICE_API_SENDER)
-                                },{
-                                    where:{
-                                        kode:req.body.userId
+                            var saldoAkhir = parseFloat(dt.saldo-process.env.PRICE_API_SENDER);
+                            var numberIsregister = req.body.type == 'wa' ? await center.isRegisteredUser(number) : true;
+                            if (numberIsregister) {
+                                await center.sendMessage(number, req.body.pesan).then(async (e) =>{
+                                    status =true;
+                                    // update price
+                                    await reseller.update({
+                                        saldo: saldoAkhir
+                                    },{
+                                        where:{
+                                            kode:req.body.userId
+                                        }
+                                    })
+                                    // masukan ke database
+                                    await Outbox.insert({
+                                        penerima: number,
+                                        tipe_penerima: 'y',
+                                        pesan: req.body.pesan,
+                                        status: 20,
+                                        kode_reseller: req.body.userId,
+                                        pengirim: client.username,
+                                        ex_kirim:1,
+                                    })
+                                    await APISender.create({
+                                        kode: req.body.userId,
+                                        penerima: number,
+                                        pengirim: client.username,
+                                        pesan: req.body.pesan,
+                                        type:req.body.type,
+                                        price: process.env.PRICE_API_SENDER,
+                                        saldoAwal: parseFloat(dt.saldo),
+                                        saldoAkhir: saldoAkhir
+                                    })
+                                    var jml = await APISender.findAll({
+                                        where:{
+                                            kode:req.body.userId,
+                                            type:req.body.type
+                                        }
+                                    })
+                                    data = {
+                                        harga: process.env.PRICE_API_SENDER,
+                                        message: `Berhasil mengirimkan pesan ke ${number.replace('@c.us','')} dengan pesan "${req.body.pesan}"`,
+                                        jumlah: jml.length
                                     }
-                                })
-                                await APISender.create({
-                                    kode: req.body.userId,
-                                    penerima: number,
-                                    pengirim: client.username,
-                                    pesan: req.body.pesan,
-                                    type:req.body.type,
-                                    price: process.env.PRICE_API_SENDER,
-                                    saldoAwal: parseFloat(dt.saldo),
-                                    saldoAkhir: parseFloat(dt.saldo-process.env.PRICE_API_SENDER)
-                                })
-                                var jml = await APISender.findAll({
-                                    where:{
-                                        kode:req.body.userId,
-                                        type:req.body.type
+                                }).catch(err => {
+                                    if (req.body.type == 'tele') {
+                                        if (err.code == 'ETELEGRAM') {
+                                            message = message="Nomor/ID "+number.replace('@c.us','')+" tujuan belum terdaftar di telegram";
+                                        }else{
+                                            message="Maaf, Terjadi kesalahan pada sistem, silahkan coba beberapa saat lagi.";
+                                        }
+                                    }else{
+                                        message="Maaf, Terjadi kesalahan pada sistem, silahkan coba beberapa saat lagi.";
                                     }
-                                })
-                                data = {
-                                    harga: process.env.PRICE_API_SENDER,
-                                    message: `Berhasil mengirimkan pesan ke ${number.replace('@c.us','')} dengan pesan "${req.body.pesan}"`,
-                                    jumlah: jml.length
-                                }
-                            }).catch(err => {
-                                message="Maaf, Terjadi kesalahan pada sistem, silahkan coba beberapa saat lagi.";
-                                console.log(`Mengirimkan pesan ke ${number} gagal`,err);
-                            });
+                                    console.log(`Mengirimkan pesan ke ${number} gagal. Error Code:`,err.code);
+                                });
+                            }else{
+                                message="Nomor/ID "+number.replace('@c.us','')+" tujuan belum terdaftar di whatsapp";
+                            }
                         }else{
                             message="Type sender yang anda masukan tidak terdaftar."
                         }
