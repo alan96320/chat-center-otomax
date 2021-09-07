@@ -34,6 +34,15 @@ const update = async (data) => {
     }
 }
 
+const insert = async (params) => {
+    try {
+        var result = await outbox.create(params);
+        return result;
+    } catch (err) {
+        console.log(err);
+    }
+}
+
 const deleted = async (where) => {
     try {
         var result = await outbox.destroy({
@@ -63,5 +72,6 @@ module.exports = {
     getOne,
     update,
     deleted,
-    getOneGlobal
+    getOneGlobal,
+    insert
 }

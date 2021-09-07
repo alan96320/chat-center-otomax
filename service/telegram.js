@@ -131,7 +131,7 @@ const create = async (socket,data,createNew) => {
                     }
                 })
             } else {
-                bot.sendMessage(msg.chat.id,'Nomor '+nomor+' belum terdaftar disistem kami.',{
+                bot.sendMessage(msg.chat.id,'Nomor '+number+' belum terdaftar disistem kami.',{
                     reply_to_message_id:msg.message_id,
                     reply_markup: {
                         remove_keyboard:true,
