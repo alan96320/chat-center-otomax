@@ -29,6 +29,7 @@ function create(socket,data,dataNew) {
             status_text:'Online'
         });
         sessions.push({
+            id:data.id,
             username: username,
             client: conn
         });

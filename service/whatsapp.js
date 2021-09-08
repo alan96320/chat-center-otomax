@@ -95,6 +95,7 @@ function create(socket,data){
                     sessions[index].client = client;
                 }else{
                     sessions.push({
+                        id:data.id,
                         username: info.me._serialized,
                         client: client
                     });

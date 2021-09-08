@@ -21,6 +21,7 @@ const create = async (socket,data,createNew) => {
             username: me.username,
         });
         sessions.push({
+            id:data.id,
             username: me.username,
             client: bot
         })

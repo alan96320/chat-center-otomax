@@ -132,6 +132,7 @@ app.post('/apiSender',async (req,res) => {
                                         kode_reseller: req.body.userId,
                                         pengirim: client.username,
                                         ex_kirim:1,
+                                        kode_terminal:client.id
                                     })
                                     await APISender.create({
                                         kode: req.body.userId,
