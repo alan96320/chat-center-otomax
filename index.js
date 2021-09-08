@@ -16,7 +16,7 @@ const Service = require('./service/myService');
 const helper = require('./helpers/helpers');
 
 var bodyParser = require('body-parser');
-const {reseller,APISender} = require('./models');
+const {reseller,APISender,mutasi} = require('./models');
 
 const app = express();
 const server = http.createServer(app);
@@ -37,6 +37,8 @@ app.get('/service',(req,res) => {
     console.log('get in service');
 })
 
+
+// untuk api sender
 app.post('/apiSender',async (req,res) => {
     try {
         var error = [];
@@ -101,6 +103,7 @@ app.post('/apiSender',async (req,res) => {
                         if (req.body.type == 'wa' || req.body.type == 'tele') {
                             var saldoAkhir = parseFloat(dt.saldo-process.env.PRICE_API_SENDER);
                             var numberIsregister = req.body.type == 'wa' ? await center.isRegisteredUser(number) : true;
+                            var ket = 'API Sender '+req.body.type+' '+number;
                             if (numberIsregister) {
                                 await center.sendMessage(number, req.body.pesan).then(async (e) =>{
                                     status =true;
@@ -112,6 +115,14 @@ app.post('/apiSender',async (req,res) => {
                                             kode:req.body.userId
                                         }
                                     })
+                                    await mutasi.create({
+                                        kode_reseller:req.body.userId,
+                                        jumlah:parseFloat('-'+process.env.PRICE_API_SENDER),
+                                        keterangan:ket,
+                                        jenis:'T',
+                                        saldo_akhir: saldoAkhir,
+                                        wrkirim:1
+                                    });
                                     // masukan ke database
                                     await Outbox.insert({
                                         penerima: number,
@@ -154,6 +165,7 @@ app.post('/apiSender',async (req,res) => {
                                         message="Maaf, Terjadi kesalahan pada sistem, silahkan coba beberapa saat lagi.";
                                     }
                                     console.log(`Mengirimkan pesan ke ${number} gagal. Error Code:`,err.code);
+                                    console.log(err);
                                 });
                             }else{
                                 message="Nomor/ID "+number.replace('@c.us','')+" tujuan belum terdaftar di whatsapp";
@@ -347,6 +359,7 @@ io.of('/service').on('connection', async (socket) => {
         });
     })
 
+    // untuk OTP
     socket.on('sendMessageOTP', async (data) => {
         var center = await whatsapp.getSession();
         const random = Math.floor(Math.random() * center.length);
