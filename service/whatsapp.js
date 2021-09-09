@@ -121,7 +121,7 @@ function create(socket,data){
                     var data = e[0];
                     await pengirim.add({
                         pengirim:msg.from,
-                        tipe_pengirim:'y',
+                        tipe_pengirim:'W',
                         kode_reseller:data.kode_reseller,
                         kirim_info:data.kirim_info,
                         wrkirim:data.wrkirim
@@ -132,7 +132,7 @@ function create(socket,data){
                     Inbox.add({
                         penerima:msg.to,
                         pengirim:msg.from,
-                        type:'y',
+                        type:'W',
                         pesan:element,
                         kode_terminal:id
                     }).then(e => {

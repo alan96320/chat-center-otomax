@@ -93,11 +93,15 @@ setInterval(async() => {
             //     return e.penerima.includes("@whatsapp") || e.penerima.includes('@c.us') || e.tipe_penerima == 'w' || e.tipe_penerima == 'W';
             // });
             datax.forEach(element => {
-                socket.emit('sendGlobal',{
-                    pesan:element.pesan,
-                    penerima:element.penerima,
-                    idOutbox:element.kode,
-                })
+                if (element.penerima.search('android') == -1) {
+                    console.log('kirimkan penerima=',element.penerima);
+                    socket.emit('sendGlobal',{
+                        pesan:element.pesan,
+                        penerima:element.penerima,
+                        idOutbox:element.kode,
+                        type:element.tipe_penerima
+                    })
+                }
             });
         }
     } catch (err) {

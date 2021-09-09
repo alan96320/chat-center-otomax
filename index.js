@@ -364,15 +364,20 @@ io.of('/service').on('connection', async (socket) => {
     socket.on('sendGlobal', async (data) => {
         var center = await telegram.getSession();
         var number = data.penerima;
-        if(data.penerima.search('@whatsapp.net') > -1 || data.penerima.search('@c.us') > -1){
+        // if(data.penerima.search('@whatsapp.net') > -1 || data.penerima.search('@c.us') > -1){
+        //     center = await whatsapp.getSession();
+        //     number = number.replace('@whatsapp.net','')+'@c.us';
+        // }
+        if (data.type == 'w' || data.type == 'W') {
             center = await whatsapp.getSession();
-            var number = number.replace('@whatsapp.net','')+'@c.us';
+            number = number.replace('@whatsapp.net','');
+            number = number.search('@c.us') > -1 ? number : number+'@c.us';
         }
         const random = Math.floor(Math.random() * center.length);
         if (center.length > 0) {
             center=center[random];
             var client = center.client;
-            client.sendMessage(number, data.pesan).then(async response => {
+            await client.sendMessage(number, data.pesan).then(async response => {
                 console.log('sukses mengirimkan pesan ke',number);
                 await Outbox.update({
                     kode: data.idOutbox,
@@ -381,7 +386,7 @@ io.of('/service').on('connection', async (socket) => {
                     terminal:null
                 });
             }).catch(async err => {
-                console.log(`Mengirimkan pesan ke ${number} gagal`,err.code);
+                console.log(`Mengirimkan pesan ke ${number} gagal`,err);
                 await Outbox.update({
                     kode: data.idOutbox,
                     kode_inbox: null,
