@@ -386,7 +386,7 @@ io.of('/service').on('connection', async (socket) => {
                     terminal:null
                 });
             }).catch(async err => {
-                console.log(`Mengirimkan pesan ke ${number} gagal`,err);
+                console.log(`Mengirimkan pesan ke ${number} gagal`,err.code);
                 await Outbox.update({
                     kode: data.idOutbox,
                     kode_inbox: null,

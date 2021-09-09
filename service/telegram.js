@@ -142,11 +142,11 @@ const create = async (socket,data,createNew) => {
         })
     });
 
-    bot.sendMessage('431486027','testing').then(e => {
-        console.log('sukses ngirim ke 431486027');
-    }).catch(e => {
-        console.log('gagal ngirim ke 431486027',e);
-    });
+    // bot.sendMessage('431486027','testing').then(e => {
+    //     console.log('sukses ngirim ke 431486027');
+    // }).catch(e => {
+    //     console.log('gagal ngirim ke 431486027',e);
+    // });
 }
 
 const abort = async (username) => {
