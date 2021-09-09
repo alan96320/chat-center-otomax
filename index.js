@@ -360,11 +360,15 @@ io.of('/service').on('connection', async (socket) => {
         });
     })
 
-    // untuk OTP
-    socket.on('sendMessageOTP', async (data) => {
-        var center = await whatsapp.getSession();
+    // untuk global wa
+    socket.on('sendGlobal', async (data) => {
+        var center = await telegram.getSession();
+        var number = data.penerima;
+        if(data.penerima.search('@whatsapp.net') > -1 || data.penerima.search('@c.us') > -1){
+            center = await whatsapp.getSession();
+            var number = number.replace('@whatsapp.net','')+'@c.us';
+        }
         const random = Math.floor(Math.random() * center.length);
-        var number = data.penerima.replace('@whatsapp.net','')+'@c.us';
         if (center.length > 0) {
             center=center[random];
             var client = center.client;
@@ -372,12 +376,19 @@ io.of('/service').on('connection', async (socket) => {
                 console.log('sukses mengirimkan pesan ke',number);
                 await Outbox.update({
                     kode: data.idOutbox,
-                    kode_inbox: data.idinbox,
+                    kode_inbox: null,
                     pengirim: center.username,
                     terminal:null
                 });
-            }).catch(err => {
-                console.log(`Mengirimkan pesan ke ${number} gagal`,err);
+            }).catch(async err => {
+                console.log(`Mengirimkan pesan ke ${number} gagal`,err.code);
+                await Outbox.update({
+                    kode: data.idOutbox,
+                    kode_inbox: null,
+                    pengirim: null,
+                    terminal:null,
+                    status:3
+                });
             });
         }
     })

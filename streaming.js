@@ -83,15 +83,17 @@ setInterval(async() => {
                 tgl_entri:{
                     [Op.gt]: today
                 },
+                kode_terminal:{
+                    [Op.is]: null,
+                }
             },
         });
         if (datax.length > 0) {
-            datax = datax.filter(e =>{
-                return e.penerima.includes("@whatsapp") || e.penerima.includes('@c.us') || e.tipe_penerima == 'w' || e.tipe_penerima == 'W';
-            });
-            console.log('data otp sekarang',datax.length);
+            // datax = datax.filter(e =>{
+            //     return e.penerima.includes("@whatsapp") || e.penerima.includes('@c.us') || e.tipe_penerima == 'w' || e.tipe_penerima == 'W';
+            // });
             datax.forEach(element => {
-                socket.emit('sendMessageOTP',{
+                socket.emit('sendGlobal',{
                     pesan:element.pesan,
                     penerima:element.penerima,
                     idOutbox:element.kode,

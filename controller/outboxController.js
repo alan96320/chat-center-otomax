@@ -15,9 +15,13 @@ const getOne = async (data) => {
 
 const update = async (data) => {
     try {
+        var status = 20;
+        if (data.status != null || data.status != undefined) {
+            status= data.status;
+        }
         var result = await outbox.update(
             {
-                status:20,
+                status:status,
                 pengirim: data.pengirim,
                 kode_terminal: data.terminal,
                 ex_kirim:1,
